@@ -1,0 +1,92 @@
+export type RetreatStage = 'planning' | 'active' | 'closed'
+
+export interface Retreat {
+  id: string
+  manager_id: string
+  name: string
+  destination: string
+  concept: string | null
+  start_date: string
+  end_date: string
+  budget: number
+  stage_override: RetreatStage | null
+  created_at: string
+  updated_at: string
+}
+
+export interface Vendor {
+  id: string
+  retreat_id: string
+  name: string
+  category: 'hotel' | 'food' | 'transport' | 'flights' | 'merch' | 'attraction' | 'other'
+  contact_name: string | null
+  contact_email: string | null
+  contact_phone: string | null
+  deliverables: string | null
+  deadline: string | null
+  cost: number | null
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled'
+  rating: number | null
+  rating_notes: string | null
+  created_at: string
+}
+
+export interface Participant {
+  id: string
+  retreat_id: string
+  name: string
+  email: string
+  phone: string | null
+  food_preferences: string | null
+  payment_status: 'unpaid' | 'partial' | 'paid'
+  payment_amount: number | null
+  notes: string | null
+  created_at: string
+}
+
+export interface ScheduleItem {
+  id: string
+  retreat_id: string
+  title: string
+  description: string | null
+  date: string
+  start_time: string
+  end_time: string | null
+  vendor_id: string | null
+  location: string | null
+  item_type: 'session' | 'meal' | 'transport' | 'activity' | 'other'
+  created_at: string
+  vendor?: Vendor
+}
+
+export interface Notification {
+  id: string
+  retreat_id: string
+  recipient_type: 'vendor' | 'participant' | 'manager'
+  recipient_id: string
+  channel: 'email' | 'sms' | 'push'
+  subject: string
+  body: string
+  status: 'pending' | 'sent' | 'failed'
+  scheduled_for: string | null
+  sent_at: string | null
+  created_at: string
+}
+
+export interface AiInteraction {
+  id: string
+  retreat_id: string
+  manager_id: string
+  prompt: string
+  response: string
+  action_taken: string | null
+  accepted: boolean | null
+  created_at: string
+}
+
+export interface Profile {
+  id: string
+  email: string
+  full_name: string
+  created_at: string
+}
