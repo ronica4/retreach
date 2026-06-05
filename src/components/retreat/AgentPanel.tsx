@@ -54,6 +54,13 @@ export default function AgentPanel({ retreat, vendors, participants, schedule }:
       })
 
       const data = await res.json()
+      if (!res.ok || data.error || !data.response) {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: 'Sorry, the agent is unavailable right now. Please try again later.',
+        }])
+        return
+      }
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: data.response,
