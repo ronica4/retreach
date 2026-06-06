@@ -84,14 +84,26 @@ export async function POST(req: NextRequest) {
 
     const pastSummaries = (summaries ?? []) as RetreatSummary[]
     if (pastSummaries.length > 0) {
-      lines.push('\nInsights from past retreats (use to inform scheduling):')
+      const avoidLines: string[] = []
+      const replicateLines: string[] = []
+
       pastSummaries.forEach(s => {
-        const parts = [`[${s.retreat_name}]`]
-        if (s.top_loved_themes) parts.push(`guests loved: ${s.top_loved_themes}`)
-        if (s.top_improve_themes) parts.push(`wanted better: ${s.top_improve_themes}`)
-        if (s.lessons_learned) parts.push(`lesson: ${s.lessons_learned.slice(0, 120)}`)
-        lines.push('- ' + parts.join(' | '))
+        const label = `[${s.retreat_name}]`
+        if (s.what_to_improve) avoidLines.push(`${label} Manager said to improve: ${s.what_to_improve}`)
+        if (s.top_improve_themes) avoidLines.push(`${label} Guests wanted better: ${s.top_improve_themes}`)
+        if (s.lessons_learned) avoidLines.push(`${label} Lesson: ${s.lessons_learned}`)
+        if (s.what_went_well) replicateLines.push(`${label} What worked well: ${s.what_went_well}`)
+        if (s.top_loved_themes) replicateLines.push(`${label} Guests loved: ${s.top_loved_themes}`)
       })
+
+      if (avoidLines.length > 0) {
+        lines.push('\nHARD CONSTRAINTS from past retreats — you MUST respect these in the schedule:')
+        avoidLines.forEach(l => lines.push(`- ${l}`))
+      }
+      if (replicateLines.length > 0) {
+        lines.push('\nWhat worked well in past retreats — replicate these:')
+        replicateLines.forEach(l => lines.push(`- ${l}`))
+      }
     }
 
     const openai = getOpenAI()
@@ -143,7 +155,8 @@ Rules:
 - Spread items through 07:00–22:00
 - Match activities to the retreat concept and destination
 - Incorporate booked vendors/services by name in the title
-- Use past retreat insights to improve the schedule
+- HARD CONSTRAINTS from past retreats in the context MUST be followed — treat them as non-negotiable rules, not suggestions. Example: if feedback says "meals after physical activities", then no meal may appear before an activity block on the same day.
+- Replicate what worked well from past retreats
 - Be specific: real activity names, not placeholders like "Activity" or "Session"`,
         },
         {

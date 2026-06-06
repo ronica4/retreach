@@ -261,9 +261,9 @@ export async function POST(req: NextRequest) {
 
         if (s.overall_rating || s.what_went_well || s.what_to_improve || s.lessons_learned) {
           historicalContext += `  Manager reflection (${s.overall_rating ? `${s.overall_rating}/5 stars` : 'unrated'}):\n`
-          if (s.what_went_well)  historicalContext += `    Went well: "${s.what_went_well.slice(0, 120)}"\n`
-          if (s.what_to_improve) historicalContext += `    Improve: "${s.what_to_improve.slice(0, 120)}"\n`
-          if (s.lessons_learned) historicalContext += `    Lessons: "${s.lessons_learned.slice(0, 120)}"\n`
+          if (s.what_went_well)  historicalContext += `    Went well: "${s.what_went_well}"\n`
+          if (s.what_to_improve) historicalContext += `    Improve: "${s.what_to_improve}"\n`
+          if (s.lessons_learned) historicalContext += `    Lessons: "${s.lessons_learned}"\n`
           if (s.would_run_again != null) historicalContext += `    Would run again: ${s.would_run_again ? 'Yes' : 'No'}\n`
         }
 
