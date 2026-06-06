@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { getRetreatStage } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
+import DestinationSelector from '@/components/booking/DestinationSelector'
 import {
   ArrowLeft, Sprout, MapPin, Calendar, Compass, Handshake,
   Users, CalendarDays, LayoutDashboard, Zap, Star, MessageSquare,
@@ -217,9 +218,7 @@ export default function NewRetreatPage() {
 
               <div>
                 <label className={labelCls}>Location *</label>
-                <input type="text" value={form.destination} onChange={e => update('destination', e.target.value)}
-                  required placeholder="Mountain Estate, Upper Galilee"
-                  className={inputCls} />
+                <DestinationSelector value={form.destination} onChange={e => update('destination', e)} />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
