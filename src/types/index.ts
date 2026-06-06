@@ -37,14 +37,62 @@ export interface Vendor {
 export interface Participant {
   id: string
   retreat_id: string
+  // Basic Information
   name: string
   email: string
   phone: string | null
+  age: number | null
+  gender: string | null
+  city_country: string | null
+  // About You
+  occupation: string | null
+  languages: string | null
+  first_retreat: boolean | null
+  how_heard: string | null
+  // Community & Connection
+  motivation: string | null
+  hoping_to_gain: string | null
+  skills_to_share: string | null
+  hobbies: string | null
+  fun_fact: string | null
+  // Retreat Preferences
+  dietary_needs: string | null
   food_preferences: string | null
+  tshirt_size: string | null
+  activity_level: 'Beginner' | 'Intermediate' | 'Advanced' | null
+  wellness_experience: string | null
+  rooming_preference: 'Private' | 'Shared' | null
+  // Emergency Contact
+  emergency_contact_name: string | null
+  emergency_contact_relationship: string | null
+  emergency_contact_phone: string | null
+  // Additional
+  additional_info: string | null
+  photo_consent: boolean | null
+  stay_connected: boolean | null
+  custom_answers: Record<string, string> | null
+  // Payment
   payment_status: 'unpaid' | 'partial' | 'paid'
   payment_amount: number | null
   notes: string | null
   created_at: string
+}
+
+export interface CustomQuestion {
+  id: string
+  label: string
+  type: 'text' | 'textarea' | 'single' | 'multi'
+  options?: string[]
+  required: boolean
+}
+
+export interface Questionnaire {
+  id: string
+  retreat_id: string
+  custom_questions: CustomQuestion[]
+  registration_price: number
+  created_at: string
+  updated_at: string
 }
 
 export interface ScheduleItem {

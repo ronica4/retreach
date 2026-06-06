@@ -1,38 +1,33 @@
 export interface HotelResult {
-  hotelId: number
-  hotelName: string
-  starRating: number
-  reviewScore: number
-  reviewCount: number
-  currency: string
-  dailyRate: number
-  crossedOutRate: number
-  discountPercentage: number
-  imageURL: string
-  landingURL: string
-  includeBreakfast: boolean
-  freeWifi: boolean
+  name: string
+  overall_rating: number
+  reviews: number
+  rate_per_night: { extracted_lowest: number }
+  total_rate: { extracted_lowest: number }
+  images: Array<{ thumbnail: string }>
+  amenities: string[]
+  property_token: string
+  type: string
 }
 
-export interface ProvisionalHotel extends HotelResult {
+export interface ProvisionalHotel {
+  name: string
+  ratePerNight: number
   nights: number
   totalCost: number
+  property_token: string
 }
 
 export interface FlightResult {
-  departure_airport: {
-    name: string
-    time: string
-  }
-  arrival_airport: {
-    name: string
-    time: string
-  }
-  duration: number
   price: number
+  total_duration: number
   airline: string
+  airline_logo: string
   flight_number: string
-  link: string
+  departure_airport: { name: string; id: string; time: string }
+  arrival_airport: { name: string; id: string; time: string }
+  stops: number
+  departure_token: string
 }
 
 export interface ProvisionalFlight extends FlightResult {

@@ -1,42 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { searchHotels, buildCitySearchRequest } from '@/lib/agoda-client'
-import { getLocationByDestination } from '@/lib/supabase/locations'
+import { searchHotels } from '@/lib/serpapi-client'
+import { getDestination } from '@/lib/destinations'
 
 export async function POST(request: NextRequest) {
   try {
-    const { retreatId, destination, checkInDate, checkOutDate, numberOfAdult, maxDailyRate } =
+    const { retreatId, destination, checkInDate, checkOutDate, numberOfAdult } =
       await request.json()
 
     if (!retreatId || !destination || !checkInDate || !checkOutDate || !numberOfAdult) {
-      return NextResponse.json(
-        { error: 'Missing required parameters' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 })
     }
 
-    // Get location mapping
-    const location = await getLocationByDestination(destination)
-    if (!location?.cityId) {
-      return NextResponse.json(
-        { error: `Could not find destination: ${destination}` },
-        { status: 400 }
-      )
-    }
+    const dest = getDestination(destination)
+    const searchQuery = dest ? dest.label : destination
 
-    // Build Agoda request
-    const agodaRequest = buildCitySearchRequest(
-      location.cityId,
-      checkInDate,
-      checkOutDate,
-      numberOfAdult,
-      maxDailyRate
-    )
+    // SerpAPI requires YYYY-MM-DD — strip any time component
+    const checkIn  = checkInDate.split('T')[0]
+    const checkOut = checkOutDate.split('T')[0]
 
-    // Search hotels
-    const hotels = await searchHotels(agodaRequest)
+    const properties = await searchHotels(searchQuery, checkIn, checkOut, numberOfAdult)
 
-    return NextResponse.json({ hotels })
+    return NextResponse.json({ hotels: properties })
   } catch (error) {
     console.error('Hotel search error:', error)
     return NextResponse.json(

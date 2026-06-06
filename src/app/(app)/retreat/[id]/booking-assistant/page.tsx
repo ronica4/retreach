@@ -99,8 +99,20 @@ export default function BookingAssistantPage() {
       })
 
       if (flightRes.ok) {
-        const { flights } = await flightRes.json()
-        setFlightResults(flights || [])
+        const data = await flightRes.json()
+        const allOptions = [...(data.best_flights ?? []), ...(data.other_flights ?? [])]
+        const mapped: FlightResult[] = allOptions.map((opt: any) => ({
+          price: opt.price,
+          total_duration: opt.total_duration,
+          airline: opt.flights[0].airline,
+          airline_logo: opt.airline_logo,
+          flight_number: opt.flights[0].flight_number,
+          departure_airport: opt.flights[0].departure_airport,
+          arrival_airport: opt.flights[opt.flights.length - 1].arrival_airport,
+          stops: (opt.layovers ?? []).length,
+          departure_token: opt.departure_token,
+        }))
+        setFlightResults(mapped)
       } else {
         const { error: msg } = await flightRes.json()
         setSearchError(msg || 'Flight search failed')
@@ -177,11 +189,14 @@ export default function BookingAssistantPage() {
     const checkIn = new Date(retreat.start_date)
     const checkOut = new Date(retreat.end_date)
     const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
+    const ratePerNight = hotel.rate_per_night?.extracted_lowest ?? 0
 
     const provisional: ProvisionalHotel = {
-      ...hotel,
+      name: hotel.name,
+      ratePerNight,
       nights,
-      totalCost: hotel.dailyRate * nights,
+      totalCost: ratePerNight * nights,
+      property_token: hotel.property_token,
     }
 
     setProvisionalSelections(prev => ({
@@ -202,10 +217,10 @@ export default function BookingAssistantPage() {
     }))
   }
 
-  function removeProvisionalHotel(hotelId: number) {
+  function removeProvisionalHotel(index: number) {
     setProvisionalSelections(prev => ({
       ...prev,
-      hotels: prev.hotels.filter(h => h.hotelId !== hotelId),
+      hotels: prev.hotels.filter((_, i) => i !== index),
     }))
   }
 
@@ -227,7 +242,7 @@ export default function BookingAssistantPage() {
       for (const hotel of provisionalSelections.hotels) {
         await supabase.from('vendors').insert({
           retreat_id: retreat.id,
-          name: hotel.hotelName,
+          name: hotel.name,
           category: 'hotel',
           cost: hotel.totalCost,
           contact_email: null,
@@ -401,14 +416,14 @@ export default function BookingAssistantPage() {
               {provisionalSelections.hotels.length > 0 && (
                 <div className="mb-4">
                   <p className="text-xs font-semibold text-stone-500 uppercase mb-2">Hotels</p>
-                  {provisionalSelections.hotels.map(h => (
-                    <div key={h.hotelId} className="flex justify-between items-start mb-2 pb-2 border-b border-stone-100">
+                  {provisionalSelections.hotels.map((h, i) => (
+                    <div key={i} className="flex justify-between items-start mb-2 pb-2 border-b border-stone-100">
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-stone-900 truncate">{h.hotelName}</p>
-                        <p className="text-xs text-stone-500">${h.dailyRate}/night × {h.nights} nights</p>
+                        <p className="text-sm font-medium text-stone-900 truncate">{h.name}</p>
+                        <p className="text-xs text-stone-500">${h.ratePerNight}/night × {h.nights} nights</p>
                       </div>
                       <button
-                        onClick={() => removeProvisionalHotel(h.hotelId)}
+                        onClick={() => removeProvisionalHotel(i)}
                         className="text-xs text-rose-600 hover:text-rose-700 ml-2"
                       >
                         Remove

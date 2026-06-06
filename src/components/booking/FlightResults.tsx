@@ -1,7 +1,7 @@
 'use client'
 
 import { FlightResult } from '@/types/booking'
-import { Loader, Clock, MapPin } from 'lucide-react'
+import { Loader, Clock, PlaneTakeoff } from 'lucide-react'
 
 interface FlightResultsProps {
   flights: FlightResult[]
@@ -10,12 +10,11 @@ interface FlightResultsProps {
   onSelect: (flight: FlightResult) => void
 }
 
-export default function FlightResults({
-  flights,
-  loading,
-  budget,
-  onSelect,
-}: FlightResultsProps) {
+function formatDuration(minutes: number) {
+  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`
+}
+
+export default function FlightResults({ flights, loading, budget, onSelect }: FlightResultsProps) {
   return (
     <div className="bg-white rounded-xl ring-1 ring-stone-200 p-5 h-full">
       <h3 className="font-semibold text-stone-900 mb-4">Flights</h3>
@@ -36,40 +35,42 @@ export default function FlightResults({
               onClick={() => onSelect(flight)}
             >
               <div className="flex items-start justify-between mb-2">
-                <div className="flex-1">
-                  <h4 className="font-semibold text-sm text-stone-900">{flight.airline}</h4>
-                  <p className="text-xs text-stone-500">{flight.flight_number}</p>
+                <div className="flex items-center gap-2">
+                  {flight.airline_logo && (
+                    <img src={flight.airline_logo} alt={flight.airline} className="w-6 h-6 object-contain" />
+                  )}
+                  <div>
+                    <p className="text-sm font-semibold text-stone-900">{flight.airline}</p>
+                    <p className="text-xs text-stone-500">{flight.flight_number}</p>
+                  </div>
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold text-blue-600">${flight.price}</p>
+                  {flight.price > budget && (
+                    <p className="text-xs text-rose-500">Over budget</p>
+                  )}
                 </div>
               </div>
 
-              <div className="space-y-2 mb-3">
-                <div className="flex items-center gap-2 text-xs">
-                  <MapPin size={12} className="text-stone-400 shrink-0" />
-                  <span className="text-stone-700">{flight.departure_airport.name}</span>
-                  <span className="text-stone-400">→</span>
-                  <span className="text-stone-700">{flight.arrival_airport.name}</span>
-                </div>
+              <div className="flex items-center gap-1.5 text-xs text-stone-700 mb-1">
+                <span>{flight.departure_airport.id}</span>
+                <span className="text-stone-400">{flight.departure_airport.time.slice(11)}</span>
+                <PlaneTakeoff size={11} className="text-stone-400 mx-0.5" />
+                <span>{flight.arrival_airport.id}</span>
+                <span className="text-stone-400">{flight.arrival_airport.time.slice(11)}</span>
+              </div>
 
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="text-stone-600">Depart: {flight.departure_airport.time}</span>
-                  <span className="text-stone-600">Arrive: {flight.arrival_airport.time}</span>
-                </div>
-
-                <div className="flex items-center gap-2 text-xs text-stone-600">
-                  <Clock size={12} />
-                  <span>{Math.floor(flight.duration / 60)}h {flight.duration % 60}m</span>
-                </div>
+              <div className="flex items-center gap-3 text-xs text-stone-500">
+                <span className="flex items-center gap-1">
+                  <Clock size={11} />
+                  {formatDuration(flight.total_duration)}
+                </span>
+                <span>{flight.stops === 0 ? 'Direct' : `${flight.stops} stop${flight.stops > 1 ? 's' : ''}`}</span>
               </div>
 
               <button
-                onClick={e => {
-                  e.stopPropagation()
-                  onSelect(flight)
-                }}
-                className="w-full px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 text-xs font-semibold rounded transition-colors"
+                onClick={e => { e.stopPropagation(); onSelect(flight) }}
+                className="mt-2 w-full px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 text-xs font-semibold rounded transition-colors"
               >
                 Add
               </button>

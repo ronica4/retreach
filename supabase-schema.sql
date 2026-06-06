@@ -57,10 +57,41 @@ create policy "Managers can manage vendors" on public.vendors for all
 create table public.participants (
   id uuid default gen_random_uuid() primary key,
   retreat_id uuid references public.retreats(id) on delete cascade not null,
+  -- Basic Information
   name text not null,
   email text not null,
   phone text,
-  food_preferences text,
+  age integer,
+  gender text,
+  city_country text,
+  -- About You
+  occupation text,
+  languages text,
+  first_retreat boolean,
+  how_heard text,
+  -- Community & Connection
+  motivation text,
+  hoping_to_gain text,
+  skills_to_share text,
+  hobbies text,
+  fun_fact text,
+  -- Retreat Preferences
+  dietary_needs text,
+  food_preferences text, -- kept for backwards compat
+  tshirt_size text,
+  activity_level text check (activity_level in ('Beginner','Intermediate','Advanced')),
+  wellness_experience text,
+  rooming_preference text check (rooming_preference in ('Private','Shared')),
+  -- Emergency Contact
+  emergency_contact_name text,
+  emergency_contact_relationship text,
+  emergency_contact_phone text,
+  -- Additional
+  additional_info text,
+  photo_consent boolean,
+  stay_connected boolean,
+  custom_answers jsonb default '{}',
+  -- Payment tracking
   payment_status text default 'unpaid' check (payment_status in ('unpaid','partial','paid')),
   payment_amount numeric(10,2),
   notes text,
@@ -69,6 +100,22 @@ create table public.participants (
 alter table public.participants enable row level security;
 create policy "Managers can manage participants" on public.participants for all
   using (exists (select 1 from public.retreats r where r.id = retreat_id and r.manager_id = auth.uid()));
+-- Allow public (unauthenticated) inserts for self-registration
+create policy "Public can register as participant" on public.participants for insert with check (true);
+
+-- Questionnaires (custom questions + price per retreat, manager-owned)
+create table public.questionnaires (
+  id uuid default gen_random_uuid() primary key,
+  retreat_id uuid references public.retreats(id) on delete cascade not null unique,
+  custom_questions jsonb default '[]',
+  registration_price numeric(10,2) default 0,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+alter table public.questionnaires enable row level security;
+create policy "Managers can manage own questionnaires" on public.questionnaires for all
+  using (exists (select 1 from public.retreats r where r.id = retreat_id and r.manager_id = auth.uid()));
+create policy "Public can read questionnaires" on public.questionnaires for select using (true);
 
 -- Schedule Items
 create table public.schedule_items (
