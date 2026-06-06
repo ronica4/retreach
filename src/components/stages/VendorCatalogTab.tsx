@@ -60,6 +60,12 @@ const COUNTRY_LABEL: Record<string, string> = {
 }
 const countryLabel = (c: string | null) => (c ? COUNTRY_LABEL[c] ?? c : '')
 
+// Whether a country value is clean enough to show as a filter option. Keeps the
+// known (mapped) countries and any English-typed ones; hides seed junk such as
+// multi-country "a|b|c" values and untranslated Hebrew typos.
+const isListableCountry = (c: string) =>
+  c in COUNTRY_LABEL || (!c.includes('|') && /^[A-Za-z][A-Za-z .'-]*$/.test(c))
+
 const inputCls = 'w-full text-sm bg-white rounded-lg px-3 py-2.5 ring-1 ring-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none transition'
 const labelCls = 'text-xs font-semibold text-stone-400 mb-1 block'
 
@@ -98,7 +104,7 @@ export default function VendorCatalogTab({ retreat, vendors }: Props) {
   const countries = useMemo(() => {
     if (!items) return []
     const counts = new Map<string, number>()
-    for (const it of items) if (it.country) counts.set(it.country, (counts.get(it.country) ?? 0) + 1)
+    for (const it of items) if (it.country && isListableCountry(it.country)) counts.set(it.country, (counts.get(it.country) ?? 0) + 1)
     return [...counts.entries()].sort((a, b) => b[1] - a[1])
   }, [items])
 
