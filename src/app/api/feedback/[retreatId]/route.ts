@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+// .trim() strips a stray BOM (U+FEFF) from pasted env values, which would
+// otherwise make supabase-js throw "Cannot convert argument to ByteString".
+const cleanEnv = (v: string | undefined) => (v ?? '').trim()
+
 function serviceClient() {
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL),
+    cleanEnv(process.env.SUPABASE_SERVICE_ROLE_KEY),
   )
 }
 

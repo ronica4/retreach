@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
 
+// .trim() strips a stray BOM (U+FEFF) from a pasted key, which would otherwise
+// make Resend's fetch throw "Cannot convert argument to ByteString".
+const cleanEnv = (v: string | undefined) => (v ?? '').trim()
+
 function getResend() {
-  return new Resend(process.env.RESEND_API_KEY)
+  return new Resend(cleanEnv(process.env.RESEND_API_KEY))
 }
 
 export async function POST(

@@ -3,16 +3,21 @@ import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { draftWelcomeNotification } from '@/lib/notification-helpers'
 
+// Strip whitespace and any stray BOM (U+FEFF) that can sneak into env values
+// when keys are pasted into a dashboard — an invalid char here makes
+// supabase-js / Resend throw "Cannot convert argument to ByteString".
+const cleanEnv = (v: string | undefined) => (v ?? '').trim()
+
 // Uses service role to bypass RLS — public participants can self-register
 function serviceClient() {
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL),
+    cleanEnv(process.env.SUPABASE_SERVICE_ROLE_KEY),
   )
 }
 
 function getResend() {
-  return new Resend(process.env.RESEND_API_KEY)
+  return new Resend(cleanEnv(process.env.RESEND_API_KEY))
 }
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ retreatId: string }> }) {

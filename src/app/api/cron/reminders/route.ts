@@ -10,10 +10,14 @@ import { daysUntilDeadline, draftDeadlineNotification } from '@/lib/notification
 // In production: swap the insert for a real delivery call (Resend, Twilio, FCM).
 // The trigger_key prevents duplicate notifications for the same vendor+window.
 
+// .trim() strips a stray BOM (U+FEFF) from pasted env values, which would
+// otherwise make supabase-js throw "Cannot convert argument to ByteString".
+const cleanEnv = (v: string | undefined) => (v ?? '').trim()
+
 function serviceClient() {
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL),
+    cleanEnv(process.env.SUPABASE_SERVICE_ROLE_KEY),
   )
 }
 
@@ -125,7 +129,7 @@ export async function GET(req: NextRequest) {
     .lte('scheduled_for', now.toISOString())
 
   let sent = 0
-  const resendKey = process.env.RESEND_API_KEY
+  const resendKey = cleanEnv(process.env.RESEND_API_KEY)
   if (resendKey && dueNotifications && dueNotifications.length > 0) {
     const resend = new Resend(resendKey)
     for (const n of dueNotifications) {
