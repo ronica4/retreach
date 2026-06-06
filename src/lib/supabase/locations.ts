@@ -38,7 +38,10 @@ export async function getLocationByDestination(destination: string) {
     .limit(1)
     .single()
 
-  if (!cityData) return null
+  if (!cityData) {
+    console.error(`[Location] City not found: ${destination}`)
+    return null
+  }
 
   // Extract just the city name (before the comma) for airport lookup
   const cityNameOnly = cityData.city_name.split(',')[0].trim()
@@ -50,9 +53,14 @@ export async function getLocationByDestination(destination: string) {
     .limit(1)
     .single()
 
+  if (!airportData) {
+    console.error(`[Location] Airport code not found for city: ${cityNameOnly} (original: ${destination})`)
+    return null
+  }
+
   return {
     cityId: cityData.agoda_city_id,
-    airportCode: airportData?.iata_code,
+    airportCode: airportData.iata_code,
   }
 }
 

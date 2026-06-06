@@ -20,24 +20,7 @@ export default function BookingAssistantPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const [hotelBudgetPercent, setHotelBudgetPercent] = useState(60)
-  const [flightBudgetPercent, setFlightBudgetPercent] = useState(40)
-
-  const [hotelResults, setHotelResults] = useState<HotelResult[]>([])
-  const [flightResults, setFlightResults] = useState<FlightResult[]>([])
-  const [searchingHotels, setSearchingHotels] = useState(false)
-  const [searchingFlights, setSearchingFlights] = useState(false)
-  const [searchError, setSearchError] = useState<string | null>(null)
-
-  const [provisionalSelections, setProvisionalSelections] = useState<{
-    hotels: ProvisionalHotel[]
-    flights: ProvisionalFlight[]
-  }>({
-    hotels: [],
-    flights: [],
-  })
-
-  const [confirmingSelections, setConfirmingSelections] = useState(false)
+  const [searchStep, setSearchStep] = useState<'flights' | 'hotels' | 'both'>('flights')
 
   // Load retreat data
   useEffect(() => {
@@ -66,27 +49,60 @@ export default function BookingAssistantPage() {
       setRetreat(data)
       setLoading(false)
 
-      // Auto-search if data available
-      if (data.start_date && data.end_date) {
-        await performSearch(data, 60, 40)
+      // Auto-search flights only on initial load
+      if (data.start_date && data.end_date && data.destination) {
+        await performFlightSearch(data, 60, 40)
       }
     }
 
     loadRetreat()
   }, [retreatId, router])
 
-  async function performSearch(r: Retreat, hotelPct: number, flightPct: number) {
+  async function performFlightSearch(r: Retreat, hotelPct: number, flightPct: number) {
+    if (!r.start_date || !r.end_date || !r.destination) {
+      setSearchError('Missing retreat details')
+      return
+    }
+
+    setSearchingFlights(true)
+    setSearchError(null)
+
+    try {
+      const flightRes = await fetch('/api/search/flights', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          retreatId: r.id,
+          destination: r.destination,
+          outboundDate: r.start_date,
+          returnDate: r.end_date,
+        }),
+      })
+
+      if (flightRes.ok) {
+        const { flights } = await flightRes.json()
+        setFlightResults(flights || [])
+      } else {
+        const { error: msg } = await flightRes.json()
+        setSearchError(msg || 'Flight search failed')
+      }
+    } catch (err) {
+      setSearchError(err instanceof Error ? err.message : 'Flight search failed')
+    } finally {
+      setSearchingFlights(false)
+    }
+  }
+
+  async function performHotelSearch(r: Retreat, hotelPct: number, flightPct: number) {
     if (!r.start_date || !r.end_date || !r.destination || !r.budget) {
       setSearchError('Missing retreat details')
       return
     }
 
     setSearchingHotels(true)
-    setSearchingFlights(true)
     setSearchError(null)
 
     try {
-      // Calculate nights
       const checkIn = new Date(r.start_date)
       const checkOut = new Date(r.end_date)
       const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
@@ -94,7 +110,6 @@ export default function BookingAssistantPage() {
       const hotelBudget = (r.budget * hotelPct) / 100
       const maxDailyRate = hotelBudget / nights
 
-      // Search hotels
       const hotelRes = await fetch('/api/search/hotels', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -116,42 +131,25 @@ export default function BookingAssistantPage() {
         setSearchError(msg || 'Hotel search failed')
       }
     } catch (err) {
-      setSearchError(err instanceof Error ? err.message : 'Search failed')
+      setSearchError(err instanceof Error ? err.message : 'Hotel search failed')
     } finally {
       setSearchingHotels(false)
     }
+  }
 
-    try {
-      // Search flights
-      const flightRes = await fetch('/api/search/flights', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          retreatId: r.id,
-          destination: r.destination,
-          outboundDate: r.start_date,
-          returnDate: r.end_date,
-        }),
-      })
-
-      if (flightRes.ok) {
-        const { flights } = await flightRes.json()
-        setFlightResults(flights || [])
-      } else {
-        const { error: msg } = await flightRes.json()
-        setSearchError(msg || 'Flight search failed')
-      }
-    } catch (err) {
-      setSearchError(err instanceof Error ? err.message : 'Search failed')
-    } finally {
-      setSearchingFlights(false)
-    }
+  async function handleSearchHotels() {
+    if (!retreat) return
+    setSearchStep('both')
+    await performHotelSearch(retreat, hotelBudgetPercent, flightBudgetPercent)
   }
 
   function handleBudgetChange(hotelPct: number) {
     setHotelBudgetPercent(hotelPct)
     setFlightBudgetPercent(100 - hotelPct)
-    if (retreat) performSearch(retreat, hotelPct, 100 - hotelPct)
+    // Only re-search hotels if they're already being shown
+    if (retreat && searchStep === 'both') {
+      performHotelSearch(retreat, hotelPct, 100 - hotelPct)
+    }
   }
 
   function addProvisionalHotel(hotel: HotelResult) {
@@ -310,22 +308,76 @@ export default function BookingAssistantPage() {
           flightBudget={flightBudget}
         />
 
+        {/* Tab buttons */}
+        <div className="flex gap-2 mt-8 mb-6">
+          <button
+            onClick={() => setSearchStep('flights')}
+            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
+              searchStep === 'flights'
+                ? 'bg-emerald-600 text-white'
+                : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
+            }`}
+          >
+            Flights
+          </button>
+          <button
+            onClick={handleSearchHotels}
+            disabled={searchingHotels}
+            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
+              searchStep === 'both'
+                ? 'bg-emerald-600 text-white'
+                : 'bg-stone-200 text-stone-700 hover:bg-stone-300 disabled:opacity-50'
+            }`}
+          >
+            {searchingHotels ? 'Loading hotels...' : 'Hotels'}
+          </button>
+        </div>
+
         {/* Search results and selections */}
-        <div className="grid grid-cols-3 gap-6 mt-8">
-          {/* Left: Hotel Results */}
+        <div className="grid grid-cols-3 gap-6">
+          {/* Left: Results panel (flights or hotels depending on tab) */}
           <div className="col-span-1">
-            <HotelResults
-              hotels={hotelResults}
-              loading={searchingHotels}
-              budget={hotelBudget}
-              onSelect={addProvisionalHotel}
-            />
+            {searchStep === 'flights' ? (
+              <FlightResults
+                flights={flightResults}
+                loading={searchingFlights}
+                budget={flightBudget}
+                onSelect={addProvisionalFlight}
+              />
+            ) : (
+              <HotelResults
+                hotels={hotelResults}
+                loading={searchingHotels}
+                budget={hotelBudget}
+                onSelect={addProvisionalHotel}
+              />
+            )}
           </div>
 
           {/* Center: Provisional selections */}
           <div className="col-span-1">
             <div className="bg-white rounded-xl ring-1 ring-stone-200 p-5">
               <h3 className="font-semibold text-stone-900 mb-4">Selected</h3>
+
+              {provisionalSelections.flights.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-xs font-semibold text-stone-500 uppercase mb-2">Flights</p>
+                  {provisionalSelections.flights.map(f => (
+                    <div key={f.id} className="flex justify-between items-start mb-2 pb-2 border-b border-stone-100">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-stone-900 truncate">{f.airline}</p>
+                        <p className="text-xs text-stone-500">${f.price}</p>
+                      </div>
+                      <button
+                        onClick={() => removeProvisionalFlight(f.id)}
+                        className="text-xs text-rose-600 hover:text-rose-700 ml-2"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {provisionalSelections.hotels.length > 0 && (
                 <div className="mb-4">
@@ -338,26 +390,6 @@ export default function BookingAssistantPage() {
                       </div>
                       <button
                         onClick={() => removeProvisionalHotel(h.hotelId)}
-                        className="text-xs text-rose-600 hover:text-rose-700 ml-2"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {provisionalSelections.flights.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-stone-500 uppercase mb-2">Flights</p>
-                  {provisionalSelections.flights.map(f => (
-                    <div key={f.id} className="flex justify-between items-start mb-2 pb-2 border-b border-stone-100">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-stone-900 truncate">{f.airline}</p>
-                        <p className="text-xs text-stone-500">${f.price}</p>
-                      </div>
-                      <button
-                        onClick={() => removeProvisionalFlight(f.id)}
                         className="text-xs text-rose-600 hover:text-rose-700 ml-2"
                       >
                         Remove
@@ -389,14 +421,25 @@ export default function BookingAssistantPage() {
             </div>
           </div>
 
-          {/* Right: Flight Results */}
+          {/* Right: Info panel */}
           <div className="col-span-1">
-            <FlightResults
-              flights={flightResults}
-              loading={searchingFlights}
-              budget={flightBudget}
-              onSelect={addProvisionalFlight}
-            />
+            <div className="bg-white rounded-xl ring-1 ring-stone-200 p-5">
+              <h3 className="font-semibold text-stone-900 mb-3">Budget Breakdown</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-stone-600">Flights</span>
+                  <span className="font-semibold text-stone-900">${flightBudget.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-stone-600">Hotels</span>
+                  <span className="font-semibold text-stone-900">${hotelBudget.toLocaleString()}</span>
+                </div>
+                <div className="pt-2 border-t border-stone-200 flex justify-between">
+                  <span className="text-stone-600 font-semibold">Total</span>
+                  <span className="font-bold text-emerald-600">${retreat.budget.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
