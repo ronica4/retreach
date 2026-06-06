@@ -50,6 +50,7 @@ export default function FlightResults({ flights, loading, budget, onSelect }: Fl
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold text-blue-600">${flight.price}</p>
+                  <p className="text-[11px] text-stone-400">round trip / person</p>
                   {flight.price > budget && (
                     <p className="text-xs text-rose-500">Over budget</p>
                   )}

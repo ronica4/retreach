@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { type Retreat, type Vendor } from '@/types'
 import { type FlightResult } from '@/types/booking'
 import FlightResults from '@/components/booking/FlightResults'
+import BudgetAllocator from '@/components/booking/BudgetAllocator'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { Plane, RefreshCw, Trash2, CheckCircle2, Calendar, MapPin, AlertCircle } from 'lucide-react'
@@ -30,9 +31,29 @@ export default function FlightsStage({ retreat, vendors }: Props) {
   const [error, setError]       = useState<string | null>(null)
   const [toast, setToast]       = useState('')
 
-  const flightBudget = retreat.flight_budget ?? Math.round((retreat.budget ?? 0) * 0.4)
+  const total = retreat.budget ?? 0
+  // Hotel/flight split lives on the retreat so the Hotels stage reads the same numbers.
+  const [hotelPct, setHotelPct] = useState(() =>
+    retreat.hotel_budget != null && total > 0 ? Math.round((retreat.hotel_budget / total) * 100) : 60)
+  const flightPct    = 100 - hotelPct
+  const flightBudget = Math.round(total * flightPct / 100)
+  const hotelBudget  = total - flightBudget
   const committed    = vendors.reduce((s, v) => s + (v.cost ?? 0), 0)
   const canSearch    = !!(retreat.start_date && retreat.end_date && retreat.destination)
+
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  function changeSplit(hp: number) {
+    setHotelPct(hp)
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(async () => {
+      const supabase = createClient()
+      await supabase.from('retreats').update({
+        hotel_budget: Math.round(total * hp / 100),
+        flight_budget: Math.round(total * (100 - hp) / 100),
+      }).eq('id', retreat.id)
+      router.refresh()
+    }, 500)
+  }
 
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(''), 2200) }
 
@@ -90,7 +111,7 @@ export default function FlightsStage({ retreat, vendors }: Props) {
       category: 'flights',
       cost: f.price,
       status: 'pending',
-      deliverables: `Flight ${f.flight_number} · ${f.stops === 0 ? 'Direct' : `${f.stops} stop(s)`}`,
+      deliverables: `Round trip · Flight ${f.flight_number} · ${f.stops === 0 ? 'Direct' : `${f.stops} stop(s)`}`,
     })
     flash('Flight added'); router.refresh()
   }
@@ -131,6 +152,20 @@ export default function FlightsStage({ retreat, vendors }: Props) {
           </p>
         </div>
       </div>
+
+      {/* budget split — shared with the Hotels stage */}
+      {total > 0 && (
+        <div className="mb-5">
+          <BudgetAllocator
+            totalBudget={total}
+            hotelPercent={hotelPct}
+            flightPercent={flightPct}
+            onHotelPercentChange={changeSplit}
+            hotelBudget={hotelBudget}
+            flightBudget={flightBudget}
+          />
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-[1fr_22rem] gap-5">
         {/* search */}

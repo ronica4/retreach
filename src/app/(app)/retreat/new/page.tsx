@@ -93,7 +93,7 @@ export default function NewRetreatPage() {
       return
     }
 
-    router.push(`/retreat/${data.id}/booking-assistant`)
+    router.push(`/retreat/${data.id}/flights`)
   }
 
   // open decisions derived from form state
