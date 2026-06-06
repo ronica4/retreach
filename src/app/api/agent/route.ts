@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
 import { getRetreatStage, formatDate, formatCurrency } from '@/lib/utils'
-import { type Retreat, type Vendor, type Participant, type ScheduleItem } from '@/types'
+import { type Retreat, type Vendor, type Participant, type ScheduleItem, type RetreatSummary } from '@/types'
 
 function getOpenAI() {
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
@@ -209,13 +209,11 @@ export async function POST(req: NextRequest) {
 
     if (!retreat) return NextResponse.json({ error: 'Retreat not found or access denied' }, { status: 404 })
 
-    // Build historical context from ALL manager's retreats
-    // Each query is wrapped so a missing table (migration not run) doesn't break the agent
+    // Build historical context — graceful fallback if any table hasn't been migrated yet
     const [
       pastInteractionsResult,
       vendorRatingsResult,
-      participantFeedbackResult,
-      managerFeedbackResult,
+      retreatSummariesResult,
     ] = await Promise.allSettled([
       supabase.from('ai_interactions')
         .select('prompt, action_taken')
@@ -224,30 +222,17 @@ export async function POST(req: NextRequest) {
       supabase.from('vendors')
         .select('name, category, rating, rating_notes, retreats!inner(manager_id)')
         .eq('retreats.manager_id', user.id).not('rating', 'is', null).limit(20),
-      supabase.from('participant_feedback')
-        .select('nps_score, what_loved, what_to_improve, retreat_id')
-        .order('submitted_at', { ascending: false }).limit(80),
-      supabase.from('manager_feedback')
-        .select('what_went_well, what_to_improve, lessons_learned, overall_rating, retreat_id')
-        .order('created_at', { ascending: false }).limit(10),
+      supabase.from('retreat_summaries')
+        .select('*')
+        .eq('manager_id', user.id)
+        .neq('retreat_id', retreatId)
+        .order('updated_at', { ascending: false })
+        .limit(8),
     ])
 
-    const pastInteractions  = pastInteractionsResult.status  === 'fulfilled' ? (pastInteractionsResult.value.data  ?? []) : []
-    const allVendorRatings  = vendorRatingsResult.status     === 'fulfilled' ? (vendorRatingsResult.value.data     ?? []) : []
-    const allPFeedback      = participantFeedbackResult.status === 'fulfilled' ? (participantFeedbackResult.value.data ?? []) : []
-    const allMFeedback      = managerFeedbackResult.status   === 'fulfilled' ? (managerFeedbackResult.value.data   ?? []) : []
-
-    // Fetch retreat names for context (to label feedback by retreat name)
-    const feedbackRetreatIds = [...new Set([
-      ...allPFeedback.map(f => f.retreat_id),
-      ...allMFeedback.map(f => f.retreat_id),
-    ])]
-    let retreatNames: Record<string, string> = {}
-    if (feedbackRetreatIds.length > 0) {
-      const { data: retreatList } = await supabase
-        .from('retreats').select('id, name').in('id', feedbackRetreatIds)
-      retreatNames = Object.fromEntries((retreatList ?? []).map(r => [r.id, r.name]))
-    }
+    const pastInteractions = pastInteractionsResult.status === 'fulfilled' ? (pastInteractionsResult.value.data ?? []) : []
+    const allVendorRatings = vendorRatingsResult.status   === 'fulfilled' ? (vendorRatingsResult.value.data   ?? []) : []
+    const retreatSummaries = retreatSummariesResult.status === 'fulfilled' ? ((retreatSummariesResult.value.data ?? []) as RetreatSummary[]) : []
 
     let historicalContext = ''
 
@@ -257,31 +242,32 @@ export async function POST(req: NextRequest) {
     if (allVendorRatings.length > 0) {
       historicalContext += `Vendor ratings from past retreats:\n${allVendorRatings.map(v => `- ${v.name} (${v.category}): ${v.rating}/5${v.rating_notes ? ` — ${v.rating_notes}` : ''}`).join('\n')}\n\n`
     }
-    if (allPFeedback.length > 0) {
-      const withNps = allPFeedback.filter(f => f.nps_score != null)
-      const avgNps  = withNps.length > 0
-        ? (withNps.reduce((s, f) => s + (f.nps_score ?? 0), 0) / withNps.length).toFixed(1)
-        : '?'
-      historicalContext += `Participant feedback across all retreats (${allPFeedback.length} responses, avg NPS: ${avgNps}/10):\n`
-      historicalContext += allPFeedback.slice(0, 25).map(f => {
-        const name = retreatNames[f.retreat_id] ?? 'past retreat'
-        const parts: string[] = [`[${name}] NPS: ${f.nps_score ?? '?'}/10`]
-        if (f.what_loved)      parts.push(`loved: "${f.what_loved.slice(0, 80)}"`)
-        if (f.what_to_improve) parts.push(`improve: "${f.what_to_improve.slice(0, 80)}"`)
-        return `  - ${parts.join(' | ')}`
-      }).join('\n') + '\n\n'
-    }
-    if (allMFeedback.length > 0) {
-      historicalContext += `Your personal reflections from past retreats:\n`
-      historicalContext += allMFeedback.map(f => {
-        const name = retreatNames[f.retreat_id] ?? 'past retreat'
-        const parts: string[] = [`[${name}]`]
-        if (f.overall_rating)  parts.push(`rating: ${f.overall_rating}/5`)
-        if (f.what_went_well)  parts.push(`went well: "${f.what_went_well.slice(0, 80)}"`)
-        if (f.what_to_improve) parts.push(`improve: "${f.what_to_improve.slice(0, 80)}"`)
-        if (f.lessons_learned) parts.push(`lessons: "${f.lessons_learned.slice(0, 80)}"`)
-        return `  - ${parts.join(' | ')}`
-      }).join('\n')
+    if (retreatSummaries.length > 0) {
+      historicalContext += `Past retreat summaries — schedule + manager reflection + guest feedback together:\n`
+      retreatSummaries.forEach(s => {
+        historicalContext += `\n[${s.retreat_name}] ${s.destination ?? ''} | ${s.start_date ?? '?'} | ${s.total_days ?? '?'} days | ${s.participant_count} participants\n`
+
+        if (Array.isArray(s.schedule_snapshot) && s.schedule_snapshot.length > 0) {
+          historicalContext += `  Schedule (${s.schedule_snapshot.length} items):\n`
+          s.schedule_snapshot.forEach(item => {
+            historicalContext += `    Day ${item.day} ${item.start}${item.end ? `–${item.end}` : ''}: ${item.title}${item.location ? ` @ ${item.location}` : ''}\n`
+          })
+        }
+
+        if (s.overall_rating || s.what_went_well || s.what_to_improve || s.lessons_learned) {
+          historicalContext += `  Manager reflection (${s.overall_rating ? `${s.overall_rating}/5 stars` : 'unrated'}):\n`
+          if (s.what_went_well)  historicalContext += `    Went well: "${s.what_went_well.slice(0, 120)}"\n`
+          if (s.what_to_improve) historicalContext += `    Improve: "${s.what_to_improve.slice(0, 120)}"\n`
+          if (s.lessons_learned) historicalContext += `    Lessons: "${s.lessons_learned.slice(0, 120)}"\n`
+          if (s.would_run_again != null) historicalContext += `    Would run again: ${s.would_run_again ? 'Yes' : 'No'}\n`
+        }
+
+        if (s.participant_response_count > 0) {
+          historicalContext += `  Guest feedback (${s.participant_response_count} responses, avg NPS ${s.avg_nps}/10 — ${s.nps_promoters} promoters, ${s.nps_detractors} detractors):\n`
+          if (s.top_loved_themes)   historicalContext += `    Guests loved: ${s.top_loved_themes}\n`
+          if (s.top_improve_themes) historicalContext += `    Guests wanted better: ${s.top_improve_themes}\n`
+        }
+      })
     }
 
     const systemPrompt = buildSystemPrompt(
