@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { type Retreat } from '@/types'
@@ -8,7 +9,7 @@ import { cn } from '@/lib/utils'
 import {
   Sprout, ArrowLeft, MapPin, Calendar,
   Compass, Handshake, Users, CalendarDays, LayoutDashboard,
-  Zap, Star, MessageSquare, FolderOpen, CheckCircle2, Bell,
+  Zap, Star, MessageSquare, FolderOpen, CheckCircle2, Bell, ChevronDown,
 } from 'lucide-react'
 
 interface Props {
@@ -48,6 +49,20 @@ const PHASES = [
 
 export default function RetreatSidebar({ retreat, vendorCount, participantCount }: Props) {
   const pathname = usePathname()
+
+  // Which group holds the stage the user is currently on
+  const activeGroup =
+    PHASES.find(p => p.stages.some(s => pathname.endsWith(`/${s.id}`)))?.group ?? 'BEFORE'
+
+  // Start with only the active group expanded so the menu isn't overwhelming
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => ({
+    BEFORE: activeGroup === 'BEFORE',
+    DURING: activeGroup === 'DURING',
+    AFTER: activeGroup === 'AFTER',
+  }))
+
+  const toggleGroup = (group: string) =>
+    setOpenGroups(prev => ({ ...prev, [group]: !prev[group] }))
 
   return (
     <aside className="w-64 shrink-0 bg-emerald-950 flex flex-col h-full overflow-y-auto nice-scroll">
@@ -90,34 +105,48 @@ export default function RetreatSidebar({ retreat, vendorCount, participantCount 
 
       {/* Nav */}
       <nav className="flex-1 px-2 pb-6">
-        {PHASES.map(({ group, stages }) => (
-          <div key={group} className="mb-5">
-            <p className="px-2 mb-1.5 text-[10px] font-bold tracking-widest text-emerald-500 uppercase">
-              {group}
-            </p>
-            <div className="space-y-0.5">
-              {stages.map(({ id, label, Icon }) => {
-                const href = `/retreat/${retreat.id}/${id}`
-                const active = pathname.endsWith(`/${id}`)
-                return (
-                  <Link
-                    key={id}
-                    href={href}
-                    className={cn(
-                      'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
-                      active
-                        ? 'bg-emerald-700 text-white font-medium'
-                        : 'text-emerald-300 hover:bg-emerald-900/70 hover:text-white'
-                    )}
-                  >
-                    <Icon size={15} className="shrink-0" />
-                    {label}
-                  </Link>
-                )
-              })}
+        {PHASES.map(({ group, stages }) => {
+          const open = openGroups[group]
+          return (
+            <div key={group} className="mb-5">
+              <button
+                type="button"
+                onClick={() => toggleGroup(group)}
+                aria-expanded={open}
+                className="w-full flex items-center justify-between px-2 mb-1.5 text-[10px] font-bold tracking-widest text-emerald-500 hover:text-emerald-300 uppercase transition-colors"
+              >
+                {group}
+                <ChevronDown
+                  size={13}
+                  className={cn('transition-transform duration-200', open ? 'rotate-0' : '-rotate-90')}
+                />
+              </button>
+              {open && (
+                <div className="space-y-0.5">
+                  {stages.map(({ id, label, Icon }) => {
+                    const href = `/retreat/${retreat.id}/${id}`
+                    const active = pathname.endsWith(`/${id}`)
+                    return (
+                      <Link
+                        key={id}
+                        href={href}
+                        className={cn(
+                          'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
+                          active
+                            ? 'bg-emerald-700 text-white font-medium'
+                            : 'text-emerald-300 hover:bg-emerald-900/70 hover:text-white'
+                        )}
+                      >
+                        <Icon size={15} className="shrink-0" />
+                        {label}
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          )
+        })}
       </nav>
     </aside>
   )
