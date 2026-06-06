@@ -145,6 +145,8 @@ export default function VendorCatalogTab({ retreat, vendors }: Props) {
       category: toVendorCategory(item),
       deliverables: item.description ?? null,
       url: item.url ?? null,
+      // Default the deadline to the retreat's first day so it surfaces in reminders.
+      deadline: retreat.start_date ?? null,
       status: 'pending',
     })
     setAdded(a => ({ ...a, [item.id]: true }))
