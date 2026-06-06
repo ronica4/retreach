@@ -68,7 +68,7 @@ export default function FeedbackStage({ retreat, participantFeedback, managerFee
         <ManagerNotesTab retreat={retreat} initial={managerFeedback} onSaved={() => router.refresh()} />
       )}
       {tab === 'guest' && (
-        <GuestResponsesTab responses={participantFeedback} />
+        <GuestResponsesTab responses={participantFeedback} retreatId={retreat.id} />
       )}
       {tab === 'setup' && (
         <SetupTab retreat={retreat} initial={feedbackQuestionnaire} onSaved={() => router.refresh()} />
@@ -110,12 +110,14 @@ function ManagerNotesTab({ retreat, initial, onSaved }: {
     if (initial) {
       await supabase.from('manager_feedback').update(payload).eq('id', initial.id)
     } else {
-      await supabase.from('manager_feedback').insert({ ...payload })
+      await supabase.from('manager_feedback').insert({ ...payload, manager_id: retreat.manager_id })
     }
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
     onSaved()
+    // Refresh the retreat summary so the agent sees updated feedback+schedule context
+    fetch(`/api/retreat-summary/${retreat.id}`, { method: 'POST' }).catch(() => {})
   }
 
   return (
@@ -206,7 +208,15 @@ function ManagerNotesTab({ retreat, initial, onSaved }: {
 
 // ── Guest Responses ──────────────────────────────────────────────────────────
 
-function GuestResponsesTab({ responses }: { responses: ParticipantFeedback[] }) {
+function GuestResponsesTab({ responses, retreatId }: { responses: ParticipantFeedback[]; retreatId: string }) {
+  // Auto-sync the retreat summary when the manager views this tab so the agent
+  // picks up the latest participant responses + schedule context
+  useEffect(() => {
+    if (responses.length > 0) {
+      fetch(`/api/retreat-summary/${retreatId}`, { method: 'POST' }).catch(() => {})
+    }
+  }, [retreatId, responses.length])
+
   const promoters  = responses.filter(r => (r.nps_score ?? 0) >= 9).length
   const passives   = responses.filter(r => (r.nps_score ?? 0) >= 7 && (r.nps_score ?? 0) < 9).length
   const detractors = responses.filter(r => (r.nps_score ?? 0) < 7 && r.nps_score != null).length
