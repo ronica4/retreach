@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { searchHotels, buildCitySearchRequest } from '@/lib/agoda-client'
-import { getLocationByDestination, saveSearchResults } from '@/lib/supabase/locations'
+import { getLocationByDestination } from '@/lib/supabase/locations'
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,9 +35,6 @@ export async function POST(request: NextRequest) {
 
     // Search hotels
     const hotels = await searchHotels(agodaRequest)
-
-    // Cache results
-    await saveSearchResults(retreatId, 'hotel', hotels)
 
     return NextResponse.json({ hotels })
   } catch (error) {

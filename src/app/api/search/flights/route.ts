@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { searchFlights } from '@/lib/serpapi-client'
-import { getLocationByDestination, saveSearchResults } from '@/lib/supabase/locations'
+import { getLocationByDestination } from '@/lib/supabase/locations'
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,9 +38,6 @@ export async function POST(request: NextRequest) {
       outboundDate,
       returnDate
     )
-
-    // Cache results
-    await saveSearchResults(retreatId, 'flight', flights)
 
     return NextResponse.json({ flights })
   } catch (error) {
