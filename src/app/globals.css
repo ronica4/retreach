@@ -1,26 +1,116 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  /* ── emerald → SAGE GREEN ── */
+  --color-emerald-50:  #F3F6F1;
+  --color-emerald-100: #E7EDE3;
+  --color-emerald-200: #D2DDCC;
+  --color-emerald-300: #B7C4B2;
+  --color-emerald-400: #A8BBA2;
+  --color-emerald-500: #8FA58B;
+  --color-emerald-600: #74896F;
+  --color-emerald-700: #5C6F57;
+  --color-emerald-800: #45533F;
+  --color-emerald-900: #333F2F;
+  --color-emerald-950: #212A1E;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  /* ── stone → SAND / BEIGE ── */
+  --color-stone-50:  #FAF7F1;
+  --color-stone-100: #F2ECE0;
+  --color-stone-200: #E8DFD3;
+  --color-stone-300: #D8CBB8;
+  --color-stone-400: #B7A98F;
+  --color-stone-500: #8F8167;
+  --color-stone-600: #6E614C;
+  --color-stone-700: #564B3A;
+  --color-stone-800: #41382B;
+  --color-stone-900: #302921;
+  --color-stone-950: #1F1A14;
+
+  /* ── amber → CLAY ── */
+  --color-amber-50:  #F7F0E6;
+  --color-amber-100: #EFE2D0;
+  --color-amber-200: #E2CBAE;
+  --color-amber-300: #D2AE86;
+  --color-amber-400: #C29568;
+  --color-amber-500: #B07E4F;
+  --color-amber-600: #966743;
+  --color-amber-700: #7B5438;
+  --color-amber-800: #5F4230;
+  --color-amber-900: #4A3427;
+  --color-amber-950: #2A1D16;
+
+  /* ── rose → DUSTY ROSE ── */
+  --color-rose-50:  #F6ECEC;
+  --color-rose-100: #ECD8D8;
+  --color-rose-200: #DEBFBF;
+  --color-rose-300: #CC9E9E;
+  --color-rose-400: #B97E7E;
+  --color-rose-500: #A66363;
+  --color-rose-600: #8E5050;
+  --color-rose-700: #774040;
+  --color-rose-800: #5C3232;
+  --color-rose-900: #472828;
+  --color-rose-950: #281616;
+
+  /* ── fold remaining hues into the family ── */
+  --color-teal-50: var(--color-emerald-50);   --color-teal-100: var(--color-emerald-100);
+  --color-teal-200: var(--color-emerald-200); --color-teal-300: var(--color-emerald-300);
+  --color-teal-400: var(--color-emerald-400); --color-teal-500: var(--color-emerald-500);
+  --color-teal-600: var(--color-emerald-600); --color-teal-700: var(--color-emerald-700);
+  --color-teal-800: var(--color-emerald-800); --color-teal-900: var(--color-emerald-900);
+  --color-teal-950: var(--color-emerald-950);
+
+  --color-orange-50: var(--color-amber-50);   --color-orange-100: var(--color-amber-100);
+  --color-orange-200: var(--color-amber-200); --color-orange-300: var(--color-amber-300);
+  --color-orange-400: var(--color-amber-400); --color-orange-500: var(--color-amber-500);
+  --color-orange-600: var(--color-amber-600); --color-orange-700: var(--color-amber-700);
+  --color-orange-800: var(--color-amber-800); --color-orange-900: var(--color-amber-900);
+  --color-orange-950: var(--color-amber-950);
+
+  /* ── aliases ── */
+  --color-sand: #F2ECE0;
+  --color-ink: var(--color-stone-800);
+  --color-muted: var(--color-stone-500);
+  --color-faint: var(--color-stone-400);
+
+  --shadow-card: 0 1px 2px rgba(41, 37, 36, 0.04), 0 8px 24px -12px rgba(41, 37, 36, 0.10);
+  --shadow-rail: 4px 0 24px -12px rgba(41, 37, 36, 0.18);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-background: var(--color-sand);
+  --color-foreground: var(--color-stone-800);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+:root { letter-spacing: -0.011em; }
+
+* { -webkit-tap-highlight-color: transparent; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  background: var(--color-sand);
+  min-height: 100vh;
+  color: var(--color-stone-800);
+}
+
+.card { box-shadow: var(--shadow-card); }
+
+.nice-scroll { scrollbar-width: thin; scrollbar-color: #CFC6B8 transparent; }
+.nice-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.nice-scroll::-webkit-scrollbar-thumb { background: #CFC6B8; border-radius: 9999px; }
+.nice-scroll::-webkit-scrollbar-track { background: transparent; }
+
+@keyframes fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.fade-up { animation: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.fade-in { animation: fade-in 0.5s ease both; }
+
+@keyframes pop-check { 0% { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.12); } 100% { transform: scale(1); opacity: 1; } }
+.pop-check { animation: pop-check 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-up, .fade-in, .pop-check { animation: none !important; }
+  * { transition-duration: 0.01ms !important; }
 }

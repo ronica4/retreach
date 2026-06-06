@@ -14,13 +14,13 @@ interface Props {
 }
 
 const categoryColors: Record<string, string> = {
-  hotel: 'bg-blue-100 text-blue-700',
-  food: 'bg-orange-100 text-orange-700',
-  transport: 'bg-purple-100 text-purple-700',
-  flights: 'bg-sky-100 text-sky-700',
-  merch: 'bg-pink-100 text-pink-700',
-  attraction: 'bg-green-100 text-green-700',
-  other: 'bg-gray-100 text-gray-600',
+  hotel:      'bg-emerald-100 text-emerald-700',
+  food:       'bg-amber-100 text-amber-700',
+  transport:  'bg-stone-100 text-stone-600',
+  flights:    'bg-emerald-100 text-emerald-600',
+  merch:      'bg-rose-100 text-rose-600',
+  attraction: 'bg-emerald-100 text-emerald-700',
+  other:      'bg-stone-100 text-stone-500',
 }
 
 export default function ActiveView({ retreat, vendors, participants, schedule }: Props) {
@@ -38,30 +38,31 @@ export default function ActiveView({ retreat, vendors, participants, schedule }:
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-4">
-        {/* Today's briefing */}
         {todayItems.length > 0 && (
-          <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-green-800 mb-2">Today — {formatDate(today)}</h3>
+          <div className="bg-emerald-50 ring-1 ring-emerald-200 rounded-xl p-4">
+            <h3 className="text-sm font-semibold text-emerald-800 mb-2">Today — {formatDate(today)}</h3>
             <div className="space-y-1.5">
               {todayItems.map(item => (
-                <div key={item.id} className="flex items-center gap-2 text-sm text-green-700">
+                <div key={item.id} className="flex items-center gap-2 text-sm text-emerald-700">
                   <Clock size={13} />
                   <span className="font-medium">{item.start_time}</span>
                   <span>{item.title}</span>
-                  {item.location && <span className="text-green-500 flex items-center gap-0.5"><MapPin size={11} />{item.location}</span>}
+                  {item.location && <span className="text-emerald-500 flex items-center gap-0.5"><MapPin size={11} />{item.location}</span>}
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        <div className="flex gap-2 border-b border-gray-200">
+        <div className="flex gap-2 border-b border-stone-200">
           {(['schedule', 'vendors', 'participants'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setView(tab)}
               className={`px-4 py-2 text-sm font-medium capitalize border-b-2 transition-colors ${
-                view === tab ? 'text-indigo-600 border-indigo-600' : 'text-gray-500 border-transparent hover:text-gray-700'
+                view === tab
+                  ? 'text-emerald-700 border-emerald-700'
+                  : 'text-stone-500 border-transparent hover:text-stone-700'
               }`}
             >
               {tab}
@@ -73,17 +74,17 @@ export default function ActiveView({ retreat, vendors, participants, schedule }:
           <div className="space-y-4">
             {Object.entries(groupedSchedule).map(([date, items]) => (
               <div key={date}>
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-wide mb-2">
                   {formatDate(date)} {date === today && '· Today'}
                 </h3>
                 <div className="space-y-2">
                   {items.map(item => (
-                    <div key={item.id} className="bg-white border border-gray-200 rounded-lg p-3 flex items-start gap-3">
-                      <div className="text-sm text-gray-500 w-16 shrink-0 font-mono">{item.start_time}</div>
+                    <div key={item.id} className="bg-white ring-1 ring-stone-200 rounded-lg p-3 flex items-start gap-3">
+                      <div className="text-sm text-stone-400 w-16 shrink-0 font-mono">{item.start_time}</div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{item.title}</p>
-                        {item.location && <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-0.5"><MapPin size={10} />{item.location}</p>}
-                        {item.vendor && <p className="text-xs text-indigo-600 mt-0.5">{item.vendor.name}</p>}
+                        <p className="text-sm font-medium text-stone-900">{item.title}</p>
+                        {item.location && <p className="text-xs text-stone-400 mt-0.5 flex items-center gap-0.5"><MapPin size={10} />{item.location}</p>}
+                        {item.vendor && <p className="text-xs text-emerald-600 mt-0.5">{item.vendor.name}</p>}
                       </div>
                     </div>
                   ))}
@@ -91,7 +92,7 @@ export default function ActiveView({ retreat, vendors, participants, schedule }:
               </div>
             ))}
             {Object.keys(groupedSchedule).length === 0 && (
-              <p className="text-sm text-gray-400 text-center py-8">No schedule items yet.</p>
+              <p className="text-sm text-stone-400 text-center py-8">No schedule items yet.</p>
             )}
           </div>
         )}
@@ -99,57 +100,57 @@ export default function ActiveView({ retreat, vendors, participants, schedule }:
         {view === 'vendors' && (
           <div className="space-y-2">
             {vendors.map(v => (
-              <div key={v.id} className="bg-white border border-gray-200 rounded-lg p-3 flex items-center justify-between">
+              <div key={v.id} className="bg-white ring-1 ring-stone-200 rounded-lg p-3 flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-900">{v.name}</span>
+                    <span className="text-sm font-medium text-stone-900">{v.name}</span>
                     <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${categoryColors[v.category]}`}>{v.category}</span>
                   </div>
-                  {v.contact_name && <p className="text-xs text-gray-500 mt-0.5">{v.contact_name}</p>}
+                  {v.contact_name && <p className="text-xs text-stone-400 mt-0.5">{v.contact_name}</p>}
                 </div>
                 <div className="flex items-center gap-2">
                   {v.contact_phone && (
-                    <a href={`tel:${v.contact_phone}`} className="text-gray-400 hover:text-indigo-600 transition-colors">
+                    <a href={`tel:${v.contact_phone}`} className="text-stone-400 hover:text-emerald-700 transition-colors">
                       <Phone size={15} />
                     </a>
                   )}
                   {v.contact_email && (
-                    <a href={`mailto:${v.contact_email}`} className="text-gray-400 hover:text-indigo-600 transition-colors">
+                    <a href={`mailto:${v.contact_email}`} className="text-stone-400 hover:text-emerald-700 transition-colors">
                       <Mail size={15} />
                     </a>
                   )}
                 </div>
               </div>
             ))}
-            {vendors.length === 0 && <p className="text-sm text-gray-400 text-center py-8">No vendors added.</p>}
+            {vendors.length === 0 && <p className="text-sm text-stone-400 text-center py-8">No vendors added.</p>}
           </div>
         )}
 
         {view === 'participants' && (
           <div className="space-y-2">
             {participants.map(p => (
-              <div key={p.id} className="bg-white border border-gray-200 rounded-lg p-3 flex items-center justify-between">
+              <div key={p.id} className="bg-white ring-1 ring-stone-200 rounded-lg p-3 flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{p.name}</p>
-                  <p className="text-xs text-gray-500">{p.email}</p>
+                  <p className="text-sm font-medium text-stone-900">{p.name}</p>
+                  <p className="text-xs text-stone-400">{p.email}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                    p.payment_status === 'paid' ? 'bg-green-100 text-green-700' :
+                    p.payment_status === 'paid'    ? 'bg-emerald-100 text-emerald-700' :
                     p.payment_status === 'partial' ? 'bg-amber-100 text-amber-700' :
-                    'bg-gray-100 text-gray-600'
+                    'bg-stone-100 text-stone-500'
                   }`}>
                     {p.payment_status}
                   </span>
                   {p.phone && (
-                    <a href={`tel:${p.phone}`} className="text-gray-400 hover:text-indigo-600 transition-colors">
+                    <a href={`tel:${p.phone}`} className="text-stone-400 hover:text-emerald-700 transition-colors">
                       <Phone size={15} />
                     </a>
                   )}
                 </div>
               </div>
             ))}
-            {participants.length === 0 && <p className="text-sm text-gray-400 text-center py-8">No participants yet.</p>}
+            {participants.length === 0 && <p className="text-sm text-stone-400 text-center py-8">No participants yet.</p>}
           </div>
         )}
       </div>

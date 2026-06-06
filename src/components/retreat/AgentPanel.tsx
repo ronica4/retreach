@@ -88,40 +88,42 @@ export default function AgentPanel({ retreat, vendors, participants, schedule }:
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl flex flex-col h-[600px] sticky top-20">
-      <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-        <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center">
+    <div className="bg-white ring-1 ring-stone-200 card rounded-2xl flex flex-col h-[600px] sticky top-20">
+      <div className="px-4 py-3 border-b border-stone-100 flex items-center gap-2">
+        <div className="w-7 h-7 rounded-full bg-emerald-700 flex items-center justify-center">
           <Bot size={14} className="text-white" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-gray-900">RetReach Agent</p>
-          <p className="text-xs text-gray-400">Your AI retreat manager</p>
+          <p className="text-sm font-semibold text-stone-900">RetReach Agent</p>
+          <p className="text-xs text-stone-400">Your AI retreat manager</p>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 nice-scroll">
         {messages.map((msg, i) => (
           <div key={i} className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
             <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-              msg.role === 'assistant' ? 'bg-indigo-100' : 'bg-gray-100'
+              msg.role === 'assistant' ? 'bg-emerald-100' : 'bg-stone-100'
             }`}>
-              {msg.role === 'assistant' ? <Bot size={12} className="text-indigo-600" /> : <User size={12} className="text-gray-600" />}
+              {msg.role === 'assistant'
+                ? <Bot size={12} className="text-emerald-700" />
+                : <User size={12} className="text-stone-600" />}
             </div>
             <div className={`max-w-[85%] ${msg.role === 'user' ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
               <div className={`px-3 py-2 rounded-xl text-sm leading-relaxed whitespace-pre-wrap ${
                 msg.role === 'assistant'
-                  ? 'bg-gray-50 text-gray-800 rounded-tl-none'
-                  : 'bg-indigo-600 text-white rounded-tr-none'
+                  ? 'bg-stone-50 text-stone-800 rounded-tl-none'
+                  : 'bg-emerald-700 text-white rounded-tr-none'
               }`}>
                 {msg.content}
               </div>
               {msg.interactionId && (
                 <div className="flex items-center gap-1.5 mt-1">
-                  <span className="text-xs text-gray-400">Was this helpful?</span>
-                  <button onClick={() => recordFeedback(msg.interactionId!, true)} className="text-green-500 hover:text-green-600">
+                  <span className="text-xs text-stone-400">Was this helpful?</span>
+                  <button onClick={() => recordFeedback(msg.interactionId!, true)} className="text-emerald-500 hover:text-emerald-600">
                     <CheckCircle size={14} />
                   </button>
-                  <button onClick={() => recordFeedback(msg.interactionId!, false)} className="text-red-400 hover:text-red-500">
+                  <button onClick={() => recordFeedback(msg.interactionId!, false)} className="text-rose-400 hover:text-rose-500">
                     <XCircle size={14} />
                   </button>
                 </div>
@@ -132,36 +134,36 @@ export default function AgentPanel({ retreat, vendors, participants, schedule }:
 
         {loading && (
           <div className="flex gap-2">
-            <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center">
-              <Bot size={12} className="text-indigo-600" />
+            <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center">
+              <Bot size={12} className="text-emerald-700" />
             </div>
-            <div className="px-3 py-2 rounded-xl bg-gray-50 rounded-tl-none">
-              <Loader2 size={14} className="text-gray-400 animate-spin" />
+            <div className="px-3 py-2 rounded-xl bg-stone-50 rounded-tl-none">
+              <Loader2 size={14} className="text-stone-400 animate-spin" />
             </div>
           </div>
         )}
         <div ref={bottomRef} />
       </div>
 
-      <div className="p-3 border-t border-gray-100">
+      <div className="p-3 border-t border-stone-100">
         <div className="flex gap-2">
           <input
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
-            placeholder="Ask me anything about this retreat..."
-            className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            placeholder="Ask me anything about this retreat…"
+            className="flex-1 text-sm bg-white rounded-lg px-3 py-2 ring-1 ring-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none transition"
           />
           <button
             onClick={handleSend}
             disabled={loading || !input.trim()}
-            className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="p-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Send size={15} />
           </button>
         </div>
-        <p className="text-xs text-gray-300 mt-1.5 text-center">Try: "Draft an email to the hotel" or "What deadlines are coming up?"</p>
+        <p className="text-xs text-stone-300 mt-1.5 text-center">Try: "Draft an email to the hotel" or "What deadlines are coming up?"</p>
       </div>
     </div>
   )

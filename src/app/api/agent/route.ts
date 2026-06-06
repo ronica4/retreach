@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
 import { getRetreatStage, formatDate, formatCurrency } from '@/lib/utils'
 import { type Retreat, type Vendor, type Participant, type ScheduleItem } from '@/types'
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
 interface AgentRequest {
   message: string
@@ -135,14 +135,13 @@ export async function POST(req: NextRequest) {
       { role: 'user' as const, content: message },
     ]
 
-    const completion = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
       max_tokens: 1024,
-      system: systemPrompt,
-      messages,
+      messages: [{ role: 'system', content: systemPrompt }, ...messages],
     })
 
-    const response = completion.content[0].type === 'text' ? completion.content[0].text : ''
+    const response = completion.choices[0].message.content ?? ''
 
     // Log the interaction for future learning
     const { data: interaction } = await supabase
@@ -160,7 +159,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ response, interactionId: interaction?.id })
   } catch (err) {
-    console.error('Agent error:', err)
-    return NextResponse.json({ error: 'Agent failed' }, { status: 500 })
+    const message = err instanceof Error ? err.message : String(err)
+    console.error('Agent error:', message)
+    return NextResponse.json({ error: 'Agent failed', detail: message }, { status: 500 })
   }
 }

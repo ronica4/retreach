@@ -15,6 +15,9 @@ interface Props {
 
 const itemTypes = ['session', 'meal', 'transport', 'activity', 'other'] as const
 
+const inputCls = 'w-full px-2 py-1.5 text-sm bg-white rounded-lg ring-1 ring-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none transition'
+const labelCls = 'text-xs font-semibold text-stone-400 mb-0.5 block'
+
 export default function ScheduleSection({ retreat, schedule, vendors }: Props) {
   const router = useRouter()
   const [showForm, setShowForm] = useState(false)
@@ -64,65 +67,58 @@ export default function ScheduleSection({ retreat, schedule, vendors }: Props) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-sm text-gray-500">{schedule.length} items</span>
+        <span className="text-sm text-stone-400">{schedule.length} items</span>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-1 text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg hover:bg-indigo-700 transition-colors"
+          className="flex items-center gap-1 text-xs bg-emerald-700 text-white px-2.5 py-1 rounded-lg hover:bg-emerald-800 transition-colors"
         >
           <Plus size={12} /> Add item
         </button>
       </div>
 
       {showForm && (
-        <form onSubmit={handleAdd} className="border border-indigo-200 bg-indigo-50 rounded-xl p-4 space-y-3">
+        <form onSubmit={handleAdd} className="ring-1 ring-emerald-200 bg-emerald-50 rounded-xl p-4 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
-              <label className="text-xs font-medium text-gray-600 mb-0.5 block">Title *</label>
+              <label className={labelCls}>Title *</label>
               <input required value={form.title} onChange={e => update('title', e.target.value)}
-                placeholder="e.g. Welcome dinner"
-                className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400" />
+                placeholder="e.g. Welcome dinner" className={inputCls} />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 mb-0.5 block">Date *</label>
+              <label className={labelCls}>Date *</label>
               <input type="date" required value={form.date}
                 min={retreat.start_date} max={retreat.end_date}
-                onChange={e => update('date', e.target.value)}
-                className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400" />
+                onChange={e => update('date', e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 mb-0.5 block">Type</label>
-              <select value={form.item_type} onChange={e => update('item_type', e.target.value)}
-                className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400 capitalize">
+              <label className={labelCls}>Type</label>
+              <select value={form.item_type} onChange={e => update('item_type', e.target.value)} className={inputCls + ' capitalize'}>
                 {itemTypes.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 mb-0.5 block">Start time *</label>
-              <input type="time" required value={form.start_time} onChange={e => update('start_time', e.target.value)}
-                className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400" />
+              <label className={labelCls}>Start time *</label>
+              <input type="time" required value={form.start_time} onChange={e => update('start_time', e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 mb-0.5 block">End time</label>
-              <input type="time" value={form.end_time} onChange={e => update('end_time', e.target.value)}
-                className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400" />
+              <label className={labelCls}>End time</label>
+              <input type="time" value={form.end_time} onChange={e => update('end_time', e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 mb-0.5 block">Location</label>
-              <input value={form.location} onChange={e => update('location', e.target.value)}
-                className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400" />
+              <label className={labelCls}>Location</label>
+              <input value={form.location} onChange={e => update('location', e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 mb-0.5 block">Linked vendor</label>
-              <select value={form.vendor_id} onChange={e => update('vendor_id', e.target.value)}
-                className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400">
+              <label className={labelCls}>Linked vendor</label>
+              <select value={form.vendor_id} onChange={e => update('vendor_id', e.target.value)} className={inputCls}>
                 <option value="">None</option>
                 {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
               </select>
             </div>
           </div>
           <div className="flex gap-2 justify-end">
-            <button type="button" onClick={() => setShowForm(false)} className="px-3 py-1.5 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-            <button type="submit" disabled={loading} className="px-3 py-1.5 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50">{loading ? 'Adding...' : 'Add item'}</button>
+            <button type="button" onClick={() => setShowForm(false)} className="px-3 py-1.5 text-xs text-stone-600 ring-1 ring-stone-200 rounded-lg hover:bg-stone-50">Cancel</button>
+            <button type="submit" disabled={loading} className="px-3 py-1.5 text-xs bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 disabled:opacity-50">{loading ? 'Adding…' : 'Add item'}</button>
           </div>
         </form>
       )}
@@ -130,21 +126,21 @@ export default function ScheduleSection({ retreat, schedule, vendors }: Props) {
       <div className="space-y-4">
         {Object.entries(grouped).map(([date, items]) => (
           <div key={date}>
-            <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">{formatDate(date)}</h4>
+            <h4 className="text-xs font-semibold text-stone-400 uppercase tracking-wide mb-2">{formatDate(date)}</h4>
             <div className="space-y-1.5">
               {items.map(item => (
-                <div key={item.id} className="flex items-start gap-2 p-2.5 border border-gray-100 rounded-lg group hover:border-gray-200 transition-colors">
-                  <div className="flex items-center gap-1 text-xs text-gray-400 font-mono w-16 shrink-0 pt-0.5">
+                <div key={item.id} className="flex items-start gap-2 p-2.5 ring-1 ring-stone-100 rounded-lg group hover:ring-stone-200 transition-colors">
+                  <div className="flex items-center gap-1 text-xs text-stone-400 font-mono w-16 shrink-0 pt-0.5">
                     <Clock size={10} />{item.start_time}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{item.title}</p>
+                    <p className="text-sm font-medium text-stone-900">{item.title}</p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      {item.location && <span className="text-xs text-gray-400 flex items-center gap-0.5"><MapPin size={10} />{item.location}</span>}
-                      {item.vendor && <span className="text-xs text-indigo-500">{item.vendor.name}</span>}
+                      {item.location && <span className="text-xs text-stone-400 flex items-center gap-0.5"><MapPin size={10} />{item.location}</span>}
+                      {item.vendor && <span className="text-xs text-emerald-600">{item.vendor.name}</span>}
                     </div>
                   </div>
-                  <button onClick={() => handleDelete(item.id)} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-all">
+                  <button onClick={() => handleDelete(item.id)} className="opacity-0 group-hover:opacity-100 text-stone-300 hover:text-rose-500 transition-all">
                     <Trash2 size={13} />
                   </button>
                 </div>
@@ -153,7 +149,7 @@ export default function ScheduleSection({ retreat, schedule, vendors }: Props) {
           </div>
         ))}
         {schedule.length === 0 && (
-          <p className="text-sm text-gray-400 text-center py-6">No schedule items. Add your first one.</p>
+          <p className="text-sm text-stone-400 text-center py-6">No schedule items. Add your first one.</p>
         )}
       </div>
     </div>

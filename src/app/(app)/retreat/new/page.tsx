@@ -57,78 +57,81 @@ export default function NewRetreatPage() {
     router.push(`/retreat/${data.id}/${stage}`)
   }
 
+  const inputCls = 'w-full text-sm bg-white rounded-lg px-3 py-2.5 ring-1 ring-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none transition'
+  const labelCls = 'block text-xs font-semibold text-stone-400 mb-1'
+
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-6">
-        <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700">
+        <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-700 transition-colors">
           <ArrowLeft size={15} />
           Back to dashboard
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900 mt-3">New retreat</h1>
+        <h1 className="text-2xl font-bold text-stone-900 mt-3">New retreat</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
+      <form onSubmit={handleSubmit} className="bg-white rounded-2xl ring-1 ring-stone-200 card p-6 space-y-5">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Retreat name *</label>
+          <label className={labelCls}>Retreat name *</label>
           <input
             type="text"
             value={form.name}
             onChange={e => update('name', e.target.value)}
             required
             placeholder="e.g. Q3 Leadership Offsite 2026"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className={inputCls}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Destination *</label>
+          <label className={labelCls}>Destination *</label>
           <input
             type="text"
             value={form.destination}
             onChange={e => update('destination', e.target.value)}
             required
             placeholder="e.g. Sedona, Arizona"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className={inputCls}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Concept / theme</label>
+          <label className={labelCls}>Concept / theme</label>
           <textarea
             value={form.concept}
             onChange={e => update('concept', e.target.value)}
             rows={2}
             placeholder="e.g. Team bonding focused on outdoor adventure and strategic planning"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+            className={inputCls + ' resize-none'}
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Start date *</label>
+            <label className={labelCls}>Start date *</label>
             <input
               type="date"
               value={form.start_date}
               onChange={e => update('start_date', e.target.value)}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className={inputCls}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">End date *</label>
+            <label className={labelCls}>End date *</label>
             <input
               type="date"
               value={form.end_date}
               onChange={e => update('end_date', e.target.value)}
               required
               min={form.start_date}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className={inputCls}
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Total budget (USD) *</label>
+          <label className={labelCls}>Total budget (USD) *</label>
           <input
             type="number"
             value={form.budget}
@@ -137,27 +140,27 @@ export default function NewRetreatPage() {
             min="0"
             step="100"
             placeholder="50000"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className={inputCls}
           />
         </div>
 
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
+          <p className="text-sm text-rose-600 bg-rose-50 px-3 py-2 rounded-lg ring-1 ring-rose-200">{error}</p>
         )}
 
         <div className="flex justify-end gap-3 pt-2">
           <Link
             href="/dashboard"
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-stone-600 bg-white ring-1 ring-stone-200 rounded-lg hover:bg-stone-50 transition-colors"
           >
             Cancel
           </Link>
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+            className="px-4 py-2 text-sm font-semibold text-white bg-emerald-700 rounded-lg hover:bg-emerald-800 disabled:opacity-50 transition-colors shadow-sm"
           >
-            {loading ? 'Creating...' : 'Create retreat'}
+            {loading ? 'Creating…' : 'Create retreat'}
           </button>
         </div>
       </form>

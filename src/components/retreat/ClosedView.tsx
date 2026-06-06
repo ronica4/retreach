@@ -16,7 +16,7 @@ export default function ClosedView({ retreat, vendors, participants }: Props) {
   const [localVendors, setLocalVendors] = useState(vendors)
   const [saving, setSaving] = useState<string | null>(null)
 
-  const paid = participants.filter(p => p.payment_status === 'paid').length
+  const paid       = participants.filter(p => p.payment_status === 'paid').length
   const totalSpend = localVendors.reduce((s, v) => s + (v.cost ?? 0), 0)
   const ratedVendors = localVendors.filter(v => v.rating !== null)
 
@@ -30,30 +30,28 @@ export default function ClosedView({ retreat, vendors, participants }: Props) {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      {/* Summary cards */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-white border border-gray-200 rounded-xl p-4">
-          <p className="text-2xl font-bold text-gray-900">{participants.length}</p>
-          <p className="text-xs text-gray-500 mt-0.5">Participants</p>
+        <div className="bg-white ring-1 ring-stone-200 card rounded-2xl p-4">
+          <p className="text-2xl font-bold text-stone-900">{participants.length}</p>
+          <p className="text-xs text-stone-400 mt-0.5">Participants</p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-4">
-          <p className="text-2xl font-bold text-gray-900">{paid}/{participants.length}</p>
-          <p className="text-xs text-gray-500 mt-0.5">Payments collected</p>
+        <div className="bg-white ring-1 ring-stone-200 card rounded-2xl p-4">
+          <p className="text-2xl font-bold text-stone-900">{paid}/{participants.length}</p>
+          <p className="text-xs text-stone-400 mt-0.5">Payments collected</p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-4">
-          <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalSpend)}</p>
-          <p className="text-xs text-gray-500 mt-0.5">Total spent</p>
-          <p className="text-xs text-green-600 mt-0.5">{formatCurrency(retreat.budget - totalSpend)} under budget</p>
+        <div className="bg-white ring-1 ring-stone-200 card rounded-2xl p-4">
+          <p className="text-2xl font-bold text-stone-900">{formatCurrency(totalSpend)}</p>
+          <p className="text-xs text-stone-400 mt-0.5">Total spent</p>
+          <p className="text-xs text-emerald-600 mt-0.5">{formatCurrency(retreat.budget - totalSpend)} under budget</p>
         </div>
       </div>
 
-      {/* Vendor ratings */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100">
-          <h2 className="text-sm font-semibold text-gray-900">Vendor ratings</h2>
-          <p className="text-xs text-gray-400 mt-0.5">{ratedVendors.length}/{vendors.length} rated · Used to improve future suggestions</p>
+      <div className="bg-white ring-1 ring-stone-200 card rounded-2xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-stone-100">
+          <h2 className="text-sm font-semibold text-stone-900">Vendor ratings</h2>
+          <p className="text-xs text-stone-400 mt-0.5">{ratedVendors.length}/{vendors.length} rated · Used to improve future suggestions</p>
         </div>
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-stone-100">
           {localVendors.map(vendor => (
             <VendorRatingRow
               key={vendor.id}
@@ -63,27 +61,26 @@ export default function ClosedView({ retreat, vendors, participants }: Props) {
             />
           ))}
           {vendors.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-8">No vendors to rate.</p>
+            <p className="text-sm text-stone-400 text-center py-8">No vendors to rate.</p>
           )}
         </div>
       </div>
 
-      {/* Participant list */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100">
-          <h2 className="text-sm font-semibold text-gray-900">Participant payments</h2>
+      <div className="bg-white ring-1 ring-stone-200 card rounded-2xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-stone-100">
+          <h2 className="text-sm font-semibold text-stone-900">Participant payments</h2>
         </div>
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-stone-100">
           {participants.map(p => (
             <div key={p.id} className="px-4 py-3 flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-900">{p.name}</p>
-                <p className="text-xs text-gray-400">{p.email}</p>
+                <p className="text-sm font-medium text-stone-900">{p.name}</p>
+                <p className="text-xs text-stone-400">{p.email}</p>
               </div>
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                p.payment_status === 'paid' ? 'bg-green-100 text-green-700' :
+                p.payment_status === 'paid'    ? 'bg-emerald-100 text-emerald-700' :
                 p.payment_status === 'partial' ? 'bg-amber-100 text-amber-700' :
-                'bg-gray-100 text-gray-600'
+                'bg-stone-100 text-stone-500'
               }`}>
                 {p.payment_status}
               </span>
@@ -102,9 +99,9 @@ function VendorRatingRow({
   saving: boolean
   onSave: (rating: number, notes: string) => void
 }) {
-  const [rating, setRating] = useState(vendor.rating ?? 0)
+  const [rating,  setRating]  = useState(vendor.rating ?? 0)
   const [hovered, setHovered] = useState(0)
-  const [notes, setNotes] = useState(vendor.rating_notes ?? '')
+  const [notes,   setNotes]   = useState(vendor.rating_notes ?? '')
   const [editing, setEditing] = useState(false)
 
   function handleStarClick(val: number) {
@@ -116,8 +113,8 @@ function VendorRatingRow({
     <div className="px-4 py-3">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-gray-900">{vendor.name}</p>
-          <p className="text-xs text-gray-400 capitalize">{vendor.category}</p>
+          <p className="text-sm font-medium text-stone-900">{vendor.name}</p>
+          <p className="text-xs text-stone-400 capitalize">{vendor.category}</p>
         </div>
         <div className="flex items-center gap-0.5">
           {[1,2,3,4,5].map(star => (
@@ -126,7 +123,7 @@ function VendorRatingRow({
               onMouseEnter={() => setHovered(star)}
               onMouseLeave={() => setHovered(0)}
               onClick={() => handleStarClick(star)}
-              className="text-gray-300 hover:scale-110 transition-transform"
+              className="text-stone-300 hover:scale-110 transition-transform"
             >
               <Star
                 size={18}
@@ -143,16 +140,16 @@ function VendorRatingRow({
             type="text"
             value={notes}
             onChange={e => { setNotes(e.target.value); setEditing(true) }}
-            placeholder="Notes (optional)..."
-            className="flex-1 px-2 py-1 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400"
+            placeholder="Notes (optional)…"
+            className="flex-1 px-2 py-1 text-xs bg-white rounded-lg ring-1 ring-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none transition"
           />
           {editing && (
             <button
               onClick={() => { onSave(rating, notes); setEditing(false) }}
               disabled={saving}
-              className="px-2 py-1 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+              className="px-2 py-1 text-xs bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 disabled:opacity-50"
             >
-              {saving ? '...' : 'Save'}
+              {saving ? '…' : 'Save'}
             </button>
           )}
         </div>

@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { type Profile } from '@/types'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, LogOut, User } from 'lucide-react'
+import { LayoutDashboard, LogOut, User, Sprout } from 'lucide-react'
 
 interface Props {
   profile: Profile | null
@@ -24,11 +24,14 @@ export default function AppShell({ profile, children }: Props) {
   }
 
   return (
-    <div className="min-h-full flex flex-col">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
+    <div className="min-h-full flex flex-col bg-stone-50">
+      <header className="bg-white/70 backdrop-blur border-b border-stone-200/70 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <span className="text-xl font-bold text-indigo-600">RetReach</span>
+            <div className="size-7 rounded-lg bg-emerald-700 grid place-items-center text-white">
+              <Sprout size={14} />
+            </div>
+            <span className="text-base font-semibold text-stone-800">RetReach</span>
           </Link>
 
           <nav className="flex items-center gap-1">
@@ -37,8 +40,8 @@ export default function AppShell({ profile, children }: Props) {
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
                 pathname === '/dashboard'
-                  ? 'bg-indigo-50 text-indigo-700'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  ? 'bg-emerald-50 text-emerald-700'
+                  : 'text-stone-500 hover:text-stone-900 hover:bg-stone-100'
               )}
             >
               <LayoutDashboard size={15} />
@@ -47,13 +50,13 @@ export default function AppShell({ profile, children }: Props) {
           </nav>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 text-sm text-stone-500">
               <User size={15} />
               <span>{profile?.full_name || profile?.email}</span>
             </div>
             <button
               onClick={handleSignOut}
-              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+              className="flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-700 transition-colors"
             >
               <LogOut size={15} />
               Sign out
