@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 
 // .trim() strips a stray BOM (U+FEFF) from pasted env values, which would
 // otherwise make supabase-js throw "Cannot convert argument to ByteString".
-const cleanEnv = (v: string | undefined) => (v ?? '').trim()
+const cleanEnv = (v: string | undefined) => (v ?? '').replace(/﻿/g, '').trim()
 
 function serviceClient() {
   return createClient(

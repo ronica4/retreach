@@ -6,7 +6,7 @@ import { draftWelcomeNotification } from '@/lib/notification-helpers'
 // Strip whitespace and any stray BOM (U+FEFF) that can sneak into env values
 // when keys are pasted into a dashboard — an invalid char here makes
 // supabase-js / Resend throw "Cannot convert argument to ByteString".
-const cleanEnv = (v: string | undefined) => (v ?? '').trim()
+const cleanEnv = (v: string | undefined) => (v ?? '').replace(/﻿/g, '').trim()
 
 // Uses service role to bypass RLS — public participants can self-register
 function serviceClient() {

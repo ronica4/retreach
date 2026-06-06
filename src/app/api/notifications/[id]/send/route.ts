@@ -4,7 +4,7 @@ import { Resend } from 'resend'
 
 // .trim() strips a stray BOM (U+FEFF) from a pasted key, which would otherwise
 // make Resend's fetch throw "Cannot convert argument to ByteString".
-const cleanEnv = (v: string | undefined) => (v ?? '').trim()
+const cleanEnv = (v: string | undefined) => (v ?? '').replace(/﻿/g, '').trim()
 
 function getResend() {
   return new Resend(cleanEnv(process.env.RESEND_API_KEY))
