@@ -15,18 +15,14 @@ const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'create_schedule_items',
-      description: 'Add or replace schedule items. Use days_to_clear to surgically replace specific days without touching others. NEVER use replace_all_existing unless the user explicitly asks to rebuild the ENTIRE schedule from scratch.',
+      description: 'Add or replace schedule items. Choose mode carefully: "add" only inserts (never deletes anything), "replace_days" deletes and replaces only the days present in the items array, "replace_all" wipes the entire schedule first.',
       parameters: {
         type: 'object',
         properties: {
-          days_to_clear: {
-            type: 'array',
-            items: { type: 'integer' },
-            description: 'Day numbers whose existing items should be deleted before inserting the new ones. Use this for partial edits (e.g. "change day 2"). Leave empty to add items without removing anything.',
-          },
-          replace_all_existing: {
-            type: 'boolean',
-            description: 'Delete ALL existing schedule items before inserting. Only use when the user explicitly asks to replace or regenerate the ENTIRE schedule.',
+          mode: {
+            type: 'string',
+            enum: ['add', 'replace_days', 'replace_all'],
+            description: '"add" = insert new items alongside existing ones (use when adding something new). "replace_days" = replace ONLY the specific days in the items list, leave all other days untouched (use for partial edits like "change day 2"). "replace_all" = wipe everything and rebuild from scratch (ONLY when user explicitly asks to redo the entire schedule).',
           },
           items: {
             type: 'array',
@@ -172,11 +168,11 @@ When asked to build, create, generate, or update the schedule:
 3. Do NOT call create_schedule_items until the user explicitly confirms (yes / ok / sure / add them / looks good)
 4. After confirmation, call the tool and summarize what was created
 
-CRITICAL — partial edits:
-- If the user asks to change/update/fix SPECIFIC days or events, use days_to_clear with only those day numbers. NEVER use replace_all_existing for partial edits.
-- replace_all_existing = true ONLY when the user says "redo the whole schedule", "start over", or "replace everything".
-- If adding new items without removing existing ones, leave both days_to_clear and replace_all_existing unset.
-- Preserve ALL days and events that the user did not ask to change.
+CRITICAL — choosing the right mode:
+- mode "add": user wants to ADD something new (a new event, extra session). No existing items are removed.
+- mode "replace_days": user wants to CHANGE or REPLACE specific days (e.g. "redo day 2", "change the afternoon on day 3"). ONLY the days that appear in your items list will be replaced — all other days are untouched.
+- mode "replace_all": user explicitly says "redo the whole schedule", "start over", or "replace everything". Use rarely.
+- When editing only some days, provide items ONLY for the days being changed — do NOT include items for untouched days.
 
 ## Drafting messages
 Always use real values. Never write [Vendor Name], [Date], [Amount]. Substitute actual data.
@@ -323,21 +319,24 @@ export async function POST(req: NextRequest) {
 
         if (toolCall.function.name === 'create_schedule_items') {
           const args = JSON.parse(toolCall.function.arguments) as {
-            days_to_clear?: number[]
-            replace_all_existing?: boolean
+            mode?: 'add' | 'replace_days' | 'replace_all'
             items: Array<{
               day_number: number; start_time: string; end_time?: string
               title: string; item_type: string; location?: string
             }>
           }
 
-          if (args.replace_all_existing) {
+          const mode = args.mode ?? 'add'
+
+          if (mode === 'replace_all') {
             await supabase.from('schedule_items').delete().eq('retreat_id', retreatId)
-          } else if (args.days_to_clear && args.days_to_clear.length > 0) {
+          } else if (mode === 'replace_days') {
+            // Derive which days to clear from the items being inserted — AI can't get this wrong
+            const dayNumbers = [...new Set(args.items.map(i => i.day_number))]
             await supabase.from('schedule_items')
               .delete()
               .eq('retreat_id', retreatId)
-              .in('day_number', args.days_to_clear)
+              .in('day_number', dayNumbers)
           }
 
           const rows = args.items.map(item => ({
