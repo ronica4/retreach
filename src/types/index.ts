@@ -34,6 +34,20 @@ export interface Vendor {
   created_at: string
 }
 
+export interface VendorCatalogItem {
+  id: string
+  source_id: number | null
+  entity_type: 'attraction' | 'hostel'
+  name: string
+  country: string | null
+  city: string | null
+  category: string | null
+  description: string | null
+  url: string | null
+  created_by: string | null
+  created_at: string
+}
+
 export interface Participant {
   id: string
   retreat_id: string

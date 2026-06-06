@@ -10,8 +10,9 @@ import {
   Plus, Upload, Download, Phone, Mail, Clock, MessageSquare, Copy, Check,
   PenLine, X, ThumbsUp, ThumbsDown, Sparkles, ClipboardList, Bell,
   Building2, Plane, Bus, HeartHandshake, UtensilsCrossed, Camera,
-  Lightbulb, Palette, Package, Loader2, CheckCircle2,
+  Lightbulb, Palette, Package, Loader2, CheckCircle2, LibraryBig,
 } from 'lucide-react'
+import VendorCatalogTab from './VendorCatalogTab'
 
 interface Props {
   retreat: Retreat
@@ -109,9 +110,10 @@ function detectConcept(retreat: Retreat) {
 
 // ── root component ─────────────────────────────────────────────────────────
 export default function VendorsStage({ retreat, vendors }: Props) {
-  const [tab, setTab] = useState<'manage' | 'find' | 'reminders'>('manage')
+  const [tab, setTab] = useState<'manage' | 'catalog' | 'find' | 'reminders'>('manage')
   const tabs = [
     { id: 'manage' as const,    label: 'Manage',       Icon: ClipboardList },
+    { id: 'catalog' as const,   label: 'Catalog',      Icon: LibraryBig },
     { id: 'find' as const,      label: 'Find for me',  Icon: Sparkles },
     { id: 'reminders' as const, label: 'Reminders',    Icon: Bell },
   ]
@@ -136,6 +138,7 @@ export default function VendorsStage({ retreat, vendors }: Props) {
       </div>
 
       {tab === 'manage'    && <ManageTab retreat={retreat} vendors={vendors} />}
+      {tab === 'catalog'   && <VendorCatalogTab retreat={retreat} vendors={vendors} />}
       {tab === 'find'      && <FindTab retreat={retreat} vendors={vendors} />}
       {tab === 'reminders' && <RemindersTab retreat={retreat} vendors={vendors} />}
     </div>
