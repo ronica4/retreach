@@ -40,10 +40,13 @@ export async function getLocationByDestination(destination: string) {
 
   if (!cityData) return null
 
+  // Extract just the city name (before the comma) for airport lookup
+  const cityNameOnly = cityData.city_name.split(',')[0].trim()
+
   const { data: airportData } = await supabase
     .from('flight_airport_codes')
     .select('iata_code')
-    .eq('city', cityData.city_name.split(',')[0])
+    .ilike('city', `%${cityNameOnly}%`)
     .limit(1)
     .single()
 
