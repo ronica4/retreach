@@ -10,6 +10,7 @@ import {
   Sprout, ArrowLeft, MapPin, Calendar,
   Compass, Handshake, Users, CalendarDays, LayoutDashboard,
   Zap, MessageSquare, FolderOpen, CheckCircle2, Bell, ChevronDown,
+  Plane, Building2,
 } from 'lucide-react'
 
 interface Props {
@@ -23,7 +24,9 @@ const PHASES = [
     group: 'BEFORE',
     stages: [
       { id: 'planning',     label: 'Planning',      Icon: Compass,          desc: 'Retreat concept & details' },
-      { id: 'vendors',      label: 'Vendors',        Icon: Handshake,        desc: 'Manage suppliers' },
+      { id: 'flights',      label: 'Flights',        Icon: Plane,            desc: 'Search & book flights' },
+      { id: 'hotels',       label: 'Hotels',         Icon: Building2,        desc: 'Search & book lodging' },
+      { id: 'vendors',      label: 'Vendors',        Icon: Handshake,        desc: 'All other suppliers' },
       { id: 'participants', label: 'Participants',   Icon: Users,            desc: 'Guest registration' },
       { id: 'agenda',         label: 'Agenda',         Icon: CalendarDays,     desc: 'Schedule & timeline' },
       { id: 'notifications',  label: 'Notifications',  Icon: Bell,             desc: 'Reminders & comms' },
