@@ -79,6 +79,13 @@ export default function FeedbackPage() {
     )
   }
 
+  function resetForm() {
+    setForm({ name: '', email: '', nps: -1, what_loved: '', what_to_improve: '' })
+    setCustomAnswers({})
+    setError('')
+    setSubmitted(false)
+  }
+
   if (submitted) {
     return (
       <div className="min-h-screen bg-stone-50 flex items-center justify-center px-4">
@@ -87,7 +94,11 @@ export default function FeedbackPage() {
             <CheckCircle className="w-8 h-8 text-emerald-600" />
           </div>
           <h1 className="text-xl font-bold text-stone-900 mb-2">Thank you!</h1>
-          <p className="text-stone-500 text-sm">Your feedback for <strong>{retreatName}</strong> has been submitted. We really appreciate it.</p>
+          <p className="text-stone-500 text-sm mb-6">Your feedback for <strong>{retreatName}</strong> has been submitted. We really appreciate it.</p>
+          <button onClick={resetForm}
+            className="text-sm font-semibold text-emerald-700 hover:text-emerald-800 underline underline-offset-2 transition">
+            Submit another response
+          </button>
         </div>
       </div>
     )

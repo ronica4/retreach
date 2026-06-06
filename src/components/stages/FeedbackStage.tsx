@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import type { Retreat, ParticipantFeedback, ManagerFeedback, FeedbackQuestionnaire, CustomQuestion } from '@/types'
 import {
   MessageSquare, Users, User, Star, TrendingUp, TrendingDown,
-  Link2, Check, Plus, Sparkles, ClipboardList, Trash2,
+  Link2, Check, Plus, Sparkles, ClipboardList, Trash2, PenLine,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -84,6 +84,7 @@ function ManagerNotesTab({ retreat, initial, onSaved }: {
   initial: ManagerFeedback | null
   onSaved: () => void
 }) {
+  const [editing, setEditing]               = useState(!initial)
   const [rating, setRating]                 = useState(initial?.overall_rating ?? 0)
   const [hoverRating, setHoverRating]       = useState(0)
   const [whatWentWell, setWhatWentWell]     = useState(initial?.what_went_well ?? '')
@@ -91,7 +92,7 @@ function ManagerNotesTab({ retreat, initial, onSaved }: {
   const [lessonsLearned, setLessonsLearned] = useState(initial?.lessons_learned ?? '')
   const [wouldRunAgain, setWouldRunAgain]   = useState<boolean | null>(initial?.would_run_again ?? null)
   const [saving, setSaving]                 = useState(false)
-  const [saved, setSaved]                   = useState(false)
+  const [feedbackId, setFeedbackId]         = useState<string | null>(initial?.id ?? null)
 
   const ta = 'w-full px-3 py-2.5 text-sm bg-white rounded-lg ring-1 ring-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none transition resize-none'
 
@@ -107,19 +108,91 @@ function ManagerNotesTab({ retreat, initial, onSaved }: {
       would_run_again: wouldRunAgain,
       updated_at: new Date().toISOString(),
     }
-    if (initial) {
-      await supabase.from('manager_feedback').update(payload).eq('id', initial.id)
+    if (feedbackId) {
+      await supabase.from('manager_feedback').update(payload).eq('id', feedbackId)
     } else {
-      await supabase.from('manager_feedback').insert({ ...payload, manager_id: retreat.manager_id })
+      const { data } = await supabase.from('manager_feedback').insert({ ...payload, manager_id: retreat.manager_id }).select('id').single()
+      if (data) setFeedbackId(data.id)
     }
     setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    setEditing(false)
     onSaved()
-    // Refresh the retreat summary so the agent sees updated feedback+schedule context
     fetch(`/api/retreat-summary/${retreat.id}`, { method: 'POST' }).catch(() => {})
   }
 
+  const RATING_LABEL = ['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent']
+  const WOULD_RUN_LABEL: Record<string, string> = { true: 'Yes', false: 'No', null: 'Maybe' }
+
+  // ── Read-only view ──────────────────────────────────────────────────────────
+  if (!editing) {
+    const hasAny = rating > 0 || whatWentWell || whatToImprove || lessonsLearned || wouldRunAgain !== null
+    return (
+      <div className="max-w-2xl space-y-5">
+        <div className="bg-white ring-1 ring-stone-200 rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-xs font-bold text-stone-400 uppercase tracking-wide">My Reflection</p>
+            <button onClick={() => setEditing(true)}
+              className="flex items-center gap-1.5 text-xs font-semibold text-stone-600 hover:bg-stone-100 ring-1 ring-stone-200 rounded-lg px-3 py-1.5 transition">
+              <PenLine size={12} /> Edit
+            </button>
+          </div>
+
+          {!hasAny ? (
+            <p className="text-sm text-stone-400">No notes yet. Click Edit to add your reflection.</p>
+          ) : (
+            <div className="space-y-4">
+              {rating > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-stone-400 mb-1.5 uppercase tracking-wide">Overall rating</p>
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-0.5">
+                      {[1,2,3,4,5].map(n => (
+                        <Star key={n} size={18}
+                          className={cn(n <= rating ? 'text-amber-400 fill-amber-400' : 'text-stone-200 fill-stone-100')} />
+                      ))}
+                    </div>
+                    <span className="text-sm font-semibold text-stone-700">{RATING_LABEL[rating]}</span>
+                  </div>
+                </div>
+              )}
+              {whatWentWell && (
+                <div>
+                  <p className="text-xs font-semibold text-emerald-600 mb-1 flex items-center gap-1"><TrendingUp size={11} /> What went well</p>
+                  <p className="text-sm text-stone-700 whitespace-pre-wrap">{whatWentWell}</p>
+                </div>
+              )}
+              {whatToImprove && (
+                <div>
+                  <p className="text-xs font-semibold text-amber-600 mb-1 flex items-center gap-1"><TrendingDown size={11} /> What to do differently</p>
+                  <p className="text-sm text-stone-700 whitespace-pre-wrap">{whatToImprove}</p>
+                </div>
+              )}
+              {lessonsLearned && (
+                <div>
+                  <p className="text-xs font-semibold text-emerald-600 mb-1 flex items-center gap-1"><Sparkles size={11} /> Lessons learned</p>
+                  <p className="text-sm text-stone-700 whitespace-pre-wrap">{lessonsLearned}</p>
+                </div>
+              )}
+              {wouldRunAgain !== null && (
+                <div>
+                  <p className="text-xs font-semibold text-stone-400 mb-1 uppercase tracking-wide">Run again?</p>
+                  <span className={cn('text-sm font-semibold px-2.5 py-1 rounded-lg',
+                    wouldRunAgain === true ? 'bg-emerald-100 text-emerald-700' : wouldRunAgain === false ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700')}>
+                    {WOULD_RUN_LABEL[String(wouldRunAgain)]}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <p className="text-xs text-stone-400 text-center">
+          Your notes are private and only visible to you.
+        </p>
+      </div>
+    )
+  }
+
+  // ── Edit view ───────────────────────────────────────────────────────────────
   return (
     <div className="max-w-2xl space-y-5">
       {/* Overall rating */}
@@ -138,7 +211,7 @@ function ManagerNotesTab({ retreat, initial, onSaved }: {
           ))}
           {(hoverRating || rating) > 0 && (
             <span className="ml-2 text-sm text-stone-500 self-center">
-              {['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent'][(hoverRating || rating)]}
+              {RATING_LABEL[hoverRating || rating]}
             </span>
           )}
         </div>
@@ -191,11 +264,16 @@ function ManagerNotesTab({ retreat, initial, onSaved }: {
         </div>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        {feedbackId && (
+          <button onClick={() => setEditing(false)}
+            className="px-4 py-2.5 text-sm font-semibold text-stone-600 hover:bg-stone-100 ring-1 ring-stone-200 rounded-xl transition">
+            Cancel
+          </button>
+        )}
         <button onClick={save} disabled={saving}
-          className={cn('flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl transition',
-            saved ? 'bg-emerald-600 text-white' : 'bg-stone-900 text-white hover:bg-stone-700 disabled:opacity-50')}>
-          {saved ? <><Check size={14} /> Saved</> : saving ? 'Saving…' : 'Save notes'}
+          className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-stone-900 text-white hover:bg-stone-700 disabled:opacity-50 rounded-xl transition">
+          {saving ? 'Saving…' : <><Check size={14} /> Save notes</>}
         </button>
       </div>
 
