@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { type Retreat, type Participant, type Questionnaire, type CustomQuestion } from '@/types'
@@ -180,11 +180,18 @@ function StatTile({ label, value, sub, tone = 'stone', subAction }: {
 function QuestionnaireBuilder({ retreat, onPriceLoad }: { retreat: Retreat; onPriceLoad: (p: number) => void }) {
   const [loading, setLoading]       = useState(true)
   const [saving, setSaving]         = useState(false)
+  const [justSaved, setJustSaved]   = useState(false)
   const [copied, setCopied]         = useState(false)
   const [regPrice, setRegPrice]     = useState(0)
   const [customQs, setCustomQs]     = useState<CustomQuestion[]>([])
   const [editing, setEditing]       = useState<string | null>(null)
   const [questId, setQuestId]       = useState<string | null>(null)
+
+  // Refs avoid a race: while the first INSERT is in flight, questId state is
+  // still null, so rapid keystrokes would each insert a *new* questionnaire row.
+  // Duplicate rows then break the .single() load and the questions "disappear".
+  const questIdRef       = useRef<string | null>(null)
+  const insertPromiseRef = useRef<Promise<string | null> | null>(null)
 
   const iCls = 'w-full px-2.5 py-1.5 text-sm rounded-lg ring-1 ring-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none transition bg-white'
 
@@ -197,6 +204,7 @@ function QuestionnaireBuilder({ retreat, onPriceLoad }: { retreat: Retreat; onPr
         .eq('retreat_id', retreat.id)
         .single()
       if (data) {
+        questIdRef.current = data.id
         setQuestId(data.id)
         setRegPrice(data.registration_price ?? 0)
         setCustomQs(data.custom_questions ?? [])
@@ -209,6 +217,7 @@ function QuestionnaireBuilder({ retreat, onPriceLoad }: { retreat: Retreat; onPr
 
   async function save(price: number, questions: CustomQuestion[]) {
     setSaving(true)
+    setJustSaved(false)
     const supabase = createClient()
     const payload = {
       retreat_id: retreat.id,
@@ -216,13 +225,34 @@ function QuestionnaireBuilder({ retreat, onPriceLoad }: { retreat: Retreat; onPr
       custom_questions: questions,
       updated_at: new Date().toISOString(),
     }
-    if (questId) {
-      await supabase.from('questionnaires').update(payload).eq('id', questId)
-    } else {
-      const { data } = await supabase.from('questionnaires').insert(payload).select('id').single()
-      if (data) setQuestId(data.id)
+    try {
+      // If an insert is already in flight, wait for its id instead of inserting again.
+      let id = questIdRef.current
+      if (!id && insertPromiseRef.current) {
+        id = await insertPromiseRef.current
+      }
+
+      if (id) {
+        await supabase.from('questionnaires').update(payload).eq('id', id)
+      } else {
+        insertPromiseRef.current = (async () => {
+          const { data } = await supabase
+            .from('questionnaires')
+            .insert(payload)
+            .select('id')
+            .single()
+          const newId = (data?.id as string) ?? null
+          if (newId) { questIdRef.current = newId; setQuestId(newId) }
+          return newId
+        })()
+        await insertPromiseRef.current
+        insertPromiseRef.current = null
+      }
+      setJustSaved(true)
+      setTimeout(() => setJustSaved(false), 2000)
+    } finally {
+      setSaving(false)
     }
-    setSaving(false)
   }
 
   function updatePrice(p: number) {
@@ -367,17 +397,25 @@ function QuestionnaireBuilder({ retreat, onPriceLoad }: { retreat: Retreat; onPr
                           placeholder={'Option A\nOption B\nOption C'} />
                       </div>
                     )}
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between pt-1">
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" checked={q.required}
                           onChange={e => updateQuestion(q.id, { required: e.target.checked })}
                           className="rounded text-emerald-600" />
                         <span className="text-xs font-semibold text-stone-600">Required</span>
                       </label>
-                      <button onClick={() => deleteQuestion(q.id)}
-                        className="text-xs font-semibold text-rose-500 hover:text-rose-700 flex items-center gap-1">
-                        <Trash2 size={12} /> Remove
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => deleteQuestion(q.id)}
+                          className="text-xs font-semibold text-rose-500 hover:text-rose-700 flex items-center gap-1">
+                          <Trash2 size={12} /> Remove
+                        </button>
+                        <button
+                          onClick={async () => { await save(regPrice, customQs); setEditing(null) }}
+                          disabled={saving || !q.label.trim()}
+                          className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-700 text-white px-3.5 py-1.5 rounded-lg hover:bg-emerald-800 disabled:opacity-50 transition">
+                          {saving ? 'Saving…' : justSaved ? <><Check size={12} /> Saved</> : 'Save question'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
