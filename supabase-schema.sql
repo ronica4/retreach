@@ -44,6 +44,7 @@ create table public.vendors (
   deliverables text,
   deadline date,
   cost numeric(10,2),
+  url text,
   status text default 'pending' check (status in ('pending','confirmed','completed','cancelled')),
   rating integer check (rating between 1 and 5),
   rating_notes text,

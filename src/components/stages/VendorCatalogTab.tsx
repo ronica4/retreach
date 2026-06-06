@@ -138,6 +138,7 @@ export default function VendorCatalogTab({ retreat, vendors }: Props) {
       name: item.name,
       category: toVendorCategory(item),
       deliverables: item.description ?? null,
+      url: item.url ?? null,
       status: 'pending',
     })
     setAdded(a => ({ ...a, [item.id]: true }))

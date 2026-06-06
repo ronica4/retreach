@@ -28,6 +28,7 @@ export interface Vendor {
   deliverables: string | null
   deadline: string | null
   cost: number | null
+  url: string | null
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled'
   rating: number | null
   rating_notes: string | null

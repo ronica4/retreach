@@ -7,7 +7,7 @@ import { type Retreat, type Vendor } from '@/types'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import {
-  Plus, Upload, Download, Phone, Mail,
+  Plus, Upload, Download, Phone, Mail, ExternalLink,
   PenLine, X, ClipboardList, LibraryBig,
   Building2, Plane, Bus, HeartHandshake, UtensilsCrossed, Camera,
   Package, Loader2, CheckCircle2,
@@ -48,7 +48,7 @@ const STATUS_DOT: Record<Vendor['status'], string> = {
 const EMPTY_FORM = {
   name: '', category: 'hotel' as CatKey,
   contact_name: '', contact_email: '', contact_phone: '',
-  deliverables: '', deadline: '', cost: '',
+  deliverables: '', deadline: '', cost: '', url: '',
 }
 
 const inputCls = 'w-full text-sm bg-white rounded-lg px-3 py-2.5 ring-1 ring-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none transition'
@@ -121,6 +121,7 @@ function ManageTab({ retreat, vendors }: Props) {
       contact_name: form.contact_name || null, contact_email: form.contact_email || null,
       contact_phone: form.contact_phone || null, deliverables: form.deliverables || null,
       deadline: form.deadline || null, cost: form.cost ? parseFloat(form.cost) : null,
+      url: form.url || null,
     })
     setForm(EMPTY_FORM); setAdding(false); setLoading(false)
     flash('Vendor added'); router.refresh()
@@ -257,6 +258,8 @@ function VendorForm({ form, set, onSubmit, loading, submitLabel, onCancel }: {
         <input type="date" value={form.deadline} onChange={e => set('deadline', e.target.value)} className={inputCls} /></div>
       <div><label className={labelCls}>Cost (USD)</label>
         <input type="number" value={form.cost} onChange={e => set('cost', e.target.value)} className={inputCls} /></div>
+      <div className="col-span-2"><label className={labelCls}>Link</label>
+        <input type="url" value={form.url} onChange={e => set('url', e.target.value)} placeholder="https://…" className={inputCls} /></div>
       <div className="col-span-2 flex justify-end gap-2">
         {onCancel && <button type="button" onClick={onCancel}
           className="text-sm font-semibold text-stone-600 hover:bg-stone-100 ring-1 ring-stone-200 rounded-lg px-4 py-2.5 transition">Cancel</button>}
@@ -277,7 +280,7 @@ function VendorCard({ v, i }: { v: Vendor; i: number }) {
     name: v.name, category: v.category as CatKey,
     contact_name: v.contact_name ?? '', contact_email: v.contact_email ?? '',
     contact_phone: v.contact_phone ?? '', deliverables: v.deliverables ?? '',
-    deadline: v.deadline ?? '', cost: v.cost != null ? String(v.cost) : '',
+    deadline: v.deadline ?? '', cost: v.cost != null ? String(v.cost) : '', url: v.url ?? '',
   })
   const set = (k: string, val: string) => setForm(f => ({ ...f, [k]: val }))
 
@@ -289,6 +292,7 @@ function VendorCard({ v, i }: { v: Vendor; i: number }) {
       contact_name: form.contact_name || null, contact_email: form.contact_email || null,
       contact_phone: form.contact_phone || null, deliverables: form.deliverables || null,
       deadline: form.deadline || null, cost: form.cost ? parseFloat(form.cost) : null,
+      url: form.url || null,
     }).eq('id', v.id)
     setEditing(false); router.refresh()
   }
@@ -351,6 +355,12 @@ function VendorCard({ v, i }: { v: Vendor; i: number }) {
           )}
           {v.contact_email && (
             <a href={`mailto:${v.contact_email}`} className="flex items-center gap-0.5 hover:text-emerald-600"><Mail size={10} /></a>
+          )}
+          {v.url && (
+            <a href={v.url} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1 font-semibold hover:text-emerald-600">
+              <ExternalLink size={10} /> Details
+            </a>
           )}
         </div>
 
