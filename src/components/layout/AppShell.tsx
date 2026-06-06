@@ -16,6 +16,12 @@ export default function AppShell({ profile, children }: Props) {
   const pathname = usePathname()
   const router = useRouter()
 
+  // Retreat workspace handles its own sidebar layout — skip the top header
+  const pathParts = pathname.split('/').filter(Boolean)
+  const isWorkspace = pathParts[0] === 'retreat' && pathParts.length >= 3
+  if (isWorkspace) return <>{children}</>
+
+
   async function handleSignOut() {
     const supabase = createClient()
     await supabase.auth.signOut()

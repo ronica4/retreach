@@ -91,7 +91,7 @@ function RetreatCard({ retreat }: { retreat: Retreat }) {
 
   return (
     <Link
-      href={`/retreat/${retreat.id}/${stage}`}
+      href={`/retreat/${retreat.id}/planning`}
       className="block bg-white rounded-2xl ring-1 ring-stone-200 card p-5 hover:ring-emerald-300 hover:shadow-md transition-all group"
     >
       <div className="flex items-start justify-between mb-3">

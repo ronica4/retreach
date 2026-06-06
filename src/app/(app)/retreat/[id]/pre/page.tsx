@@ -1,10 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
-import PlanningStage from '@/components/stages/PlanningStage'
+import PreStage from '@/components/stages/PreStage'
 
 interface Props { params: Promise<{ id: string }> }
 
-export default async function PlanningPage({ params }: Props) {
+export default async function PrePage({ params }: Props) {
   const { id } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -20,5 +20,5 @@ export default async function PlanningPage({ params }: Props) {
 
   if (!retreat) notFound()
 
-  return <PlanningStage retreat={retreat} vendors={vendors ?? []} participants={participants ?? []} schedule={schedule ?? []} />
+  return <PreStage retreat={retreat} vendors={vendors ?? []} participants={participants ?? []} schedule={schedule ?? []} />
 }
