@@ -55,7 +55,7 @@ export default function HotelsStage({ retreat, vendors }: Props) {
           destination: retreat.destination,
           checkInDate: retreat.start_date,
           checkOutDate: retreat.end_date,
-          numberOfAdult: retreat.number_of_participants || 2,
+          numberOfAdult: Math.min(retreat.number_of_participants || 2, 6),
         }),
       })
       if (res.ok) {

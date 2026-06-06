@@ -152,7 +152,7 @@ export default function BookingAssistantPage() {
           destination: r.destination,
           checkInDate: r.start_date,
           checkOutDate: r.end_date,
-          numberOfAdult: r.number_of_participants || 2,
+          numberOfAdult: Math.min(r.number_of_participants || 2, 6),
           maxDailyRate,
         }),
       })
