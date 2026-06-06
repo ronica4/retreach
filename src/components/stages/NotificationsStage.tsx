@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { type Retreat, type Notification } from '@/types'
 import { formatDate } from '@/lib/utils'
@@ -47,6 +47,7 @@ function daysFromNow(days: number): string {
 export default function NotificationsStage({ retreat, notifications: initial }: Props) {
   const router = useRouter()
   const [notifications, setNotifications] = useState<Notification[]>(initial)
+  useEffect(() => { setNotifications(initial) }, [initial])
   const [generating, setGenerating]       = useState(false)
   const [runningCron, setRunningCron]     = useState(false)
   const [filter, setFilter]               = useState<'all' | 'pending' | 'sent'>('all')
