@@ -99,19 +99,20 @@ export async function POST(req: NextRequest) {
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
-      max_tokens: 3000,
+      max_tokens: 8000,
       tool_choice: { type: 'function', function: { name: 'create_schedule' } },
       tools: [{
         type: 'function',
         function: {
           name: 'create_schedule',
-          description: 'Output the complete retreat schedule',
+          description: 'Output the complete retreat schedule. MUST include items for every single day.',
           parameters: {
             type: 'object',
             required: ['items'],
             properties: {
               items: {
                 type: 'array',
+                minItems: totalDays * 4,
                 items: {
                   type: 'object',
                   required: ['day_number', 'start_time', 'title', 'item_type'],
@@ -132,16 +133,20 @@ export async function POST(req: NextRequest) {
       messages: [
         {
           role: 'system',
-          content: `You are a professional retreat planner. Generate a realistic, detailed daily schedule for a ${totalDays}-day retreat.
+          content: `You are a professional retreat planner. Generate a complete daily schedule for a ${totalDays}-day retreat.
+
+CRITICAL: You MUST produce items for EVERY day from Day 1 to Day ${totalDays}. Missing days are a failure.
+
 Rules:
-- Day 1 begins with arrival/check-in, last day ends with check-out/departure
-- Include: breakfast, lunch, dinner (at the retreat venue — do NOT add restaurants, external dining, or restaurant names), morning activity, afternoon activity or session, evening program
-- Each day: 6–9 items. Spread through 07:00–22:00.
+- Day 1: arrival/check-in first, then first activities
+- Day ${totalDays}: morning activities, then check-out/departure last
+- Every day must have: breakfast (08:00), lunch (13:00), dinner (19:00), morning activity, afternoon session/activity, evening program — minimum 6 items per day
+- Meals are at the retreat venue only — no restaurant names
+- Spread items through 07:00–22:00
 - Match activities to the retreat concept and destination
-- Incorporate booked vendors/services — name them in the title
-- Respect dietary needs for meal planning
-- Use past retreat insights to improve the schedule (replicate what worked, fix what didn't)
-- Be specific: use real activity names, not placeholders`,
+- Incorporate booked vendors/services by name in the title
+- Use past retreat insights to improve the schedule
+- Be specific: real activity names, not placeholders like "Activity" or "Session"`,
         },
         {
           role: 'user',
@@ -162,10 +167,35 @@ Rules:
 
     if (!items || items.length === 0) throw new Error('AI returned an empty schedule')
 
-    const rows = items.map(item => ({
+    // Clamp day numbers to valid range
+    const clamped = items.map(item => ({
+      ...item,
+      day_number: Math.min(Math.max(item.day_number, 1), totalDays),
+    }))
+
+    // Identify any days that have no items and fill them with a basic fallback
+    const coveredDays = new Set(clamped.map(i => i.day_number))
+    const fallbackItems: typeof clamped = []
+    for (let d = 1; d <= totalDays; d++) {
+      if (coveredDays.has(d)) continue
+      const isFirst = d === 1
+      const isLast  = d === totalDays
+      fallbackItems.push(
+        { day_number: d, start_time: '08:00', end_time: '09:00', title: 'Breakfast', item_type: 'meal', location: 'Dining area' },
+        { day_number: d, start_time: isFirst ? '10:00' : '09:30', end_time: isFirst ? '11:00' : '11:00', title: isFirst ? 'Welcome & check-in' : 'Morning session', item_type: isFirst ? 'other' : 'session', location: undefined },
+        { day_number: d, start_time: '13:00', end_time: '14:00', title: 'Lunch', item_type: 'meal', location: 'Dining area' },
+        { day_number: d, start_time: '15:00', end_time: '17:00', title: isLast ? 'Closing ceremony' : 'Afternoon activity', item_type: 'activity', location: undefined },
+        { day_number: d, start_time: '19:00', end_time: '20:00', title: 'Dinner', item_type: 'meal', location: 'Dining area' },
+        { day_number: d, start_time: isLast ? '21:00' : '20:30', end_time: isLast ? '22:00' : '22:00', title: isLast ? 'Farewell & departure' : 'Evening gathering', item_type: 'other', location: undefined },
+      )
+    }
+
+    const allItems = [...clamped, ...fallbackItems]
+
+    const rows = allItems.map(item => ({
       retreat_id:  retreatId,
-      day_number:  Math.min(Math.max(item.day_number, 1), totalDays),
-      date:        addDays(retreat.start_date, Math.min(Math.max(item.day_number, 1), totalDays) - 1),
+      day_number:  item.day_number,
+      date:        addDays(retreat.start_date, item.day_number - 1),
       start_time:  item.start_time,
       end_time:    item.end_time ?? null,
       title:       item.title,

@@ -157,7 +157,7 @@ export default function PlanningStage({ retreat, vendors, participants, schedule
                 <input value={form.concept} onChange={e => update('concept', e.target.value)}
                   placeholder="e.g. Yoga & nature reset" className={inputCls} /></div>
               <div><label className={labelCls}>Budget (USD)</label>
-                <input type="number" value={form.budget} onChange={e => update('budget', e.target.value)} className={inputCls} /></div>
+                <input type="text" inputMode="decimal" value={form.budget} onChange={e => update('budget', e.target.value)} className={inputCls} /></div>
             </div>
           ) : (
             <>
