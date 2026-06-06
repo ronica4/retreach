@@ -7,7 +7,7 @@ import { type Retreat, type Vendor, type ScheduleItem } from '@/types'
 import { formatDate } from '@/lib/utils'
 import {
   Plus, Trash2, Clock, Sparkles, Pencil, Check, X,
-  CalendarDays, RefreshCw, LayoutGrid, List, ChevronDown, CalendarPlus,
+  CalendarDays, RefreshCw, LayoutGrid, List, ChevronDown, CalendarPlus, AlertTriangle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -122,6 +122,28 @@ export default function AgendaStage({ retreat, schedule, vendors }: Props) {
 
   const totalDays  = getDaysInRange(retreat.start_date, retreat.end_date)
   const dayNumbers = Array.from({ length: totalDays }, (_, i) => i + 1)
+  const hasDate    = !!(retreat.start_date && retreat.end_date)
+
+  const [movingOrphans, setMovingOrphans] = useState(false)
+
+  const orphaned = hasDate
+    ? schedule.filter(item => resolvedDayNumber(item, retreat.start_date) > totalDays)
+    : []
+
+  async function handleMoveOrphans() {
+    setMovingOrphans(true)
+    const supabase = createClient()
+    const newDate  = addDays(retreat.start_date, totalDays - 1)
+    await Promise.all(
+      orphaned.map(item =>
+        supabase.from('schedule_items')
+          .update({ day_number: totalDays, date: newDate })
+          .eq('id', item.id)
+      )
+    )
+    setMovingOrphans(false)
+    router.refresh()
+  }
 
   const [form, setForm] = useState({
     title: '', day_number: 1, start_time: '09:00', end_time: '', item_type: 'session' as ItemType,
@@ -220,7 +242,6 @@ export default function AgendaStage({ retreat, schedule, vendors }: Props) {
 
   const concept        = detectConcept(retreat)
   const closedVendors  = vendors.filter(v => v.status === 'completed').length
-  const hasDate        = !!(retreat.start_date && retreat.end_date)
 
   return (
     <div>
@@ -280,6 +301,24 @@ export default function AgendaStage({ retreat, schedule, vendors }: Props) {
       {!hasDate && (
         <div className="bg-amber-50 ring-1 ring-amber-200 rounded-2xl p-4 mb-4 text-sm text-amber-700">
           Set retreat dates in Planning to enable schedule drafting and the timeline view.
+        </div>
+      )}
+
+      {orphaned.length > 0 && (
+        <div className="bg-amber-50 ring-1 ring-amber-200 rounded-2xl px-5 py-3.5 flex items-center justify-between gap-4 mb-4 fade-up">
+          <div className="flex items-center gap-2.5">
+            <AlertTriangle size={15} className="text-amber-500 shrink-0" />
+            <span className="text-sm text-amber-800">
+              <span className="font-semibold">{orphaned.length} item{orphaned.length !== 1 ? 's' : ''}</span>
+              {' '}outside your {totalDays}-day retreat
+              {' '}(day{orphaned.length !== 1 ? 's' : ''}{' '}
+              {[...new Set(orphaned.map(i => resolvedDayNumber(i, retreat.start_date)))].sort((a, b) => a - b).join(', ')})
+            </span>
+          </div>
+          <button onClick={handleMoveOrphans} disabled={movingOrphans}
+            className="shrink-0 text-sm font-semibold text-amber-800 bg-amber-100 hover:bg-amber-200 px-4 py-1.5 rounded-xl transition disabled:opacity-50">
+            {movingOrphans ? 'Moving…' : `Move all to Day ${totalDays}`}
+          </button>
         </div>
       )}
 
