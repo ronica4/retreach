@@ -101,7 +101,6 @@ export default function PlanningStage({ retreat, vendors, participants, schedule
     { id: 'd-budget',  label: 'Set a total budget',       done: retreat.budget > 0, hint: 'Unlocks the budget breakdown.' },
     { id: 'd-concept', label: 'Define the concept',       done: !!(retreat.concept?.trim()), hint: 'Lets the planner tailor everything.' },
     { id: 'd-venue',   label: 'Add lodging vendor',       done: haveCategories.has('hotel'), hint: 'The first and biggest booking.' },
-    { id: 'd-food',    label: 'Add catering vendor',      done: haveCategories.has('food'), hint: 'Lock the menu and numbers.' },
     { id: 'd-agenda',  label: 'Build the agenda',         done: schedule.length > 0, hint: 'Draft the daily flow.' },
     { id: 'd-guests',  label: 'Register guests',          done: participants.length > 0, hint: "Track who's coming." },
   ]

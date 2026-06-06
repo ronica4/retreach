@@ -9,7 +9,7 @@ import Link from 'next/link'
 import DestinationSelector from '@/components/booking/DestinationSelector'
 import {
   ArrowLeft, Sprout, MapPin, Calendar, Compass, Handshake,
-  Users, CalendarDays, LayoutDashboard, Zap, Star, MessageSquare,
+  Users, CalendarDays, LayoutDashboard, Zap, MessageSquare,
   FolderOpen, CheckCircle2, Bot, Sparkles, Circle,
 } from 'lucide-react'
 
@@ -33,7 +33,6 @@ const PHASES = [
   {
     group: 'AFTER',
     stages: [
-      { id: 'reviews',  label: 'Vendor reviews', Icon: Star,          desc: 'Rate your vendors' },
       { id: 'feedback', label: 'Feedback',        Icon: MessageSquare, desc: 'Guest NPS & themes' },
       { id: 'content',  label: 'Content',         Icon: FolderOpen,    desc: 'Photos, decks & media' },
       { id: 'closing',  label: 'Closing',         Icon: CheckCircle2,  desc: 'Wrap-up & export' },
@@ -237,7 +236,7 @@ export default function NewRetreatPage() {
               </div>
 
               <div>
-                <label className={labelCls}>Total budget (USD)</label>
+                <label className={labelCls}>Total budget for the whole retreat (USD)</label>
                 <input type="number" value={form.budget} onChange={e => update('budget', e.target.value)}
                   min="0" step="100" placeholder="50000"
                   className={inputCls} />
