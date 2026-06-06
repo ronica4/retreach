@@ -99,25 +99,24 @@ export default function AgendaStage({ retreat, schedule, vendors }: Props) {
   const [autoGenerating, setAutoGenerating] = useState(false)
   const [autoGenError, setAutoGenError]     = useState<string | null>(null)
 
-  // On mount: if schedule is empty, auto-generate via AI and open the agent drawer
+  // On mount: if schedule is empty, auto-generate via AI once.
+  // The API also guards against overwriting existing items server-side.
   useEffect(() => {
+    if (schedule.length > 0 || !retreat.start_date || !retreat.end_date) return
     window.dispatchEvent(new CustomEvent('retreach:open-agent'))
-
-    if (schedule.length === 0 && retreat.start_date && retreat.end_date) {
-      setAutoGenerating(true)
-      fetch('/api/agenda/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ retreatId: retreat.id }),
+    setAutoGenerating(true)
+    fetch('/api/agenda/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ retreatId: retreat.id }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) setAutoGenError(data.error)
+        else router.refresh()
       })
-        .then(r => r.json())
-        .then(data => {
-          if (data.error) setAutoGenError(data.error)
-          else router.refresh()
-        })
-        .catch(err => setAutoGenError(String(err)))
-        .finally(() => setAutoGenerating(false))
-    }
+      .catch(err => setAutoGenError(String(err)))
+      .finally(() => setAutoGenerating(false))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const totalDays  = getDaysInRange(retreat.start_date, retreat.end_date)

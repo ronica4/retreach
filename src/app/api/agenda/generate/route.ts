@@ -47,6 +47,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Set retreat dates before generating a schedule' }, { status: 400 })
     }
 
+    // Guard: never overwrite an existing schedule — only generate once
+    const { count: existingCount } = await supabase
+      .from('schedule_items')
+      .select('id', { count: 'exact', head: true })
+      .eq('retreat_id', retreatId)
+    if (existingCount && existingCount > 0) {
+      return NextResponse.json({ success: true, count: 0, skipped: true })
+    }
+
     const totalDays = Math.round(
       (new Date(retreat.end_date + 'T12:00:00Z').getTime() -
         new Date(retreat.start_date + 'T12:00:00Z').getTime()) / 86400000
