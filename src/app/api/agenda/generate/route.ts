@@ -38,8 +38,7 @@ export async function POST(req: NextRequest) {
         .select('retreat_name,top_loved_themes,top_improve_themes,what_went_well,lessons_learned,avg_nps')
         .eq('manager_id', user.id)
         .neq('retreat_id', retreatId)
-        .order('updated_at', { ascending: false })
-        .limit(4),
+        .order('updated_at', { ascending: false }),
     ])
 
     if (!retreat) return NextResponse.json({ error: 'Retreat not found' }, { status: 404 })

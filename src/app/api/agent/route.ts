@@ -232,8 +232,7 @@ export async function POST(req: NextRequest) {
         .select('*')
         .eq('manager_id', user.id)
         .neq('retreat_id', retreatId)
-        .order('updated_at', { ascending: false })
-        .limit(8),
+        .order('updated_at', { ascending: false }),
     ])
 
     const pastInteractions = pastInteractionsResult.status === 'fulfilled' ? (pastInteractionsResult.value.data ?? []) : []
