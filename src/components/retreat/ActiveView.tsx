@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { type Retreat, type Vendor, type Participant, type ScheduleItem } from '@/types'
-import AgentPanel from './AgentPanel'
 import { formatDate } from '@/lib/utils'
 import { Phone, Mail, Clock, MapPin } from 'lucide-react'
 
@@ -155,9 +154,6 @@ export default function ActiveView({ retreat, vendors, participants, schedule }:
         )}
       </div>
 
-      <div className="lg:col-span-1">
-        <AgentPanel retreat={retreat} vendors={vendors} participants={participants} schedule={schedule} />
-      </div>
     </div>
   )
 }

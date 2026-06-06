@@ -129,6 +129,39 @@ export interface Notification {
   created_at: string
 }
 
+export interface ParticipantFeedback {
+  id: string
+  retreat_id: string
+  participant_name: string | null
+  participant_email: string | null
+  nps_score: number | null
+  what_loved: string | null
+  what_to_improve: string | null
+  custom_answers: Record<string, string> | null
+  submitted_at: string
+}
+
+export interface ManagerFeedback {
+  id: string
+  retreat_id: string
+  manager_id: string
+  overall_rating: number | null
+  what_went_well: string | null
+  what_to_improve: string | null
+  lessons_learned: string | null
+  would_run_again: boolean | null
+  created_at: string
+  updated_at: string
+}
+
+export interface FeedbackQuestionnaire {
+  id: string
+  retreat_id: string
+  custom_questions: CustomQuestion[]
+  created_at: string
+  updated_at: string
+}
+
 export interface AiInteraction {
   id: string
   retreat_id: string

@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { type Retreat, type Vendor, type Participant, type ScheduleItem } from '@/types'
 import { formatCurrency, formatDate, daysUntil } from '@/lib/utils'
-import AgentPanel from '@/components/retreat/AgentPanel'
 import {
   Edit2, Check, X, MapPin, Calendar, DollarSign, FileText, Users, Handshake,
   CalendarDays, Sparkles, Circle, CheckCircle2, PenLine, Lightbulb, Wallet,
@@ -284,9 +283,6 @@ export default function PlanningStage({ retreat, vendors, participants, schedule
 
       {/* RIGHT RAIL */}
       <div className="space-y-4">
-        {/* AI agent panel */}
-        <AgentPanel retreat={retreat} vendors={vendors} participants={participants} schedule={schedule} />
-
         {/* open decisions checklist */}
         <div className="bg-white rounded-2xl ring-1 ring-stone-200 card p-5">
           <div className="flex items-center justify-between mb-2">

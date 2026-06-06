@@ -8,15 +8,6 @@ function getOpenAI() {
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 }
 
-interface AgentRequest {
-  message: string
-  retreat: Retreat
-  vendors: Vendor[]
-  participants: Participant[]
-  schedule: ScheduleItem[]
-  history: Array<{ role: 'user' | 'assistant'; content: string }>
-}
-
 // ── Tools ──────────────────────────────────────────────────────────────────
 
 const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
@@ -24,20 +15,20 @@ const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'create_schedule_items',
-      description: 'Create schedule items for the retreat. Use when the user asks to build, generate, draft, or add items to the schedule. Set replace_existing=true when they ask to rebuild or replace the whole schedule.',
+      description: 'Create schedule items for the retreat. Only call this AFTER the user has confirmed the proposed schedule.',
       parameters: {
         type: 'object',
         properties: {
           replace_existing: {
             type: 'boolean',
-            description: 'Delete all existing schedule items first. Use when rebuilding the whole schedule.',
+            description: 'Delete all existing schedule items first.',
           },
           items: {
             type: 'array',
             items: {
               type: 'object',
               properties: {
-                day_number: { type: 'integer', description: '1-based day offset from retreat start. Day 1 = first day.' },
+                day_number: { type: 'integer', description: '1-based day offset from retreat start.' },
                 start_time: { type: 'string', description: '24-hour HH:MM' },
                 end_time:   { type: 'string', description: '24-hour HH:MM, optional' },
                 title:      { type: 'string' },
@@ -69,7 +60,7 @@ function buildSystemPrompt(
   vendors: Vendor[],
   participants: Participant[],
   schedule: ScheduleItem[],
-  pastPatterns: string,
+  historicalContext: string,
 ): string {
   const stage = getRetreatStage(retreat)
   const now   = new Date()
@@ -78,7 +69,6 @@ function buildSystemPrompt(
     ? Math.round((new Date(retreat.end_date + 'T00:00:00').getTime() - new Date(retreat.start_date + 'T00:00:00').getTime()) / 86400000) + 1
     : 0
 
-  // Vendors
   const overdueVendors = vendors.filter(v => v.deadline && new Date(v.deadline) < now && v.status !== 'completed')
   const vendorText = vendors.length > 0
     ? vendors.map(v => {
@@ -100,7 +90,6 @@ function buildSystemPrompt(
     .map(v => `  - ${v.name} (${v.contact_name ?? '—'}): ${formatDate(v.deadline!)} | ${v.deliverables ?? 'no deliverables'}`)
     .join('\n') || '  None'
 
-  // Schedule
   const scheduleText = schedule.length > 0
     ? schedule
         .sort((a, b) => {
@@ -115,7 +104,6 @@ function buildSystemPrompt(
         }).join('\n')
     : '  Empty'
 
-  // Participants — full detail
   const paidCount    = participants.filter(p => p.payment_status === 'paid').length
   const partialCount = participants.filter(p => p.payment_status === 'partial').length
   const unpaidCount  = participants.filter(p => p.payment_status === 'unpaid').length
@@ -124,18 +112,16 @@ function buildSystemPrompt(
     ? participants.map(p => {
         const parts = [
           `  - ${p.name} <${p.email}>`,
-          p.phone             ? `phone: ${p.phone}`                      : null,
-          p.city_country      ? `from: ${p.city_country}`                : null,
-          p.age               ? `age: ${p.age}`                          : null,
-          p.occupation        ? `job: ${p.occupation}`                   : null,
-          p.activity_level    ? `activity: ${p.activity_level}`          : null,
-          p.rooming_preference ? `room pref: ${p.rooming_preference}`    : null,
+          p.phone              ? `phone: ${p.phone}`                     : null,
+          p.city_country       ? `from: ${p.city_country}`               : null,
+          p.age                ? `age: ${p.age}`                         : null,
+          p.occupation         ? `job: ${p.occupation}`                  : null,
+          p.activity_level     ? `activity: ${p.activity_level}`         : null,
+          p.rooming_preference ? `room: ${p.rooming_preference}`         : null,
           p.dietary_needs || p.food_preferences
             ? `diet: ${[p.dietary_needs, p.food_preferences].filter(Boolean).join('; ')}` : null,
-          p.tshirt_size       ? `tshirt: ${p.tshirt_size}`               : null,
           `payment: ${p.payment_status}${p.payment_amount ? ` ($${p.payment_amount})` : ''}`,
           p.emergency_contact_name ? `emergency: ${p.emergency_contact_name} ${p.emergency_contact_phone ?? ''}` : null,
-          p.notes             ? `notes: ${p.notes}`                      : null,
         ]
         return parts.filter(Boolean).join(' | ')
       }).join('\n')
@@ -143,11 +129,11 @@ function buildSystemPrompt(
 
   const stageContext = {
     planning: 'PLANNING MODE — vendor coordination, budget review, schedule gaps, registration completeness.',
-    active:   'ACTIVE MODE — retreat is live. Daily briefings, urgent issues, real-time participant/vendor comms.',
-    closed:   'CLOSED MODE — vendor ratings, budget reconciliation, lessons learned for future retreats.',
+    active:   'ACTIVE MODE — retreat is live. Daily briefings, urgent issues, real-time comms.',
+    closed:   'CLOSED MODE — vendor ratings, budget reconciliation, lessons learned.',
   }[stage]
 
-  return `You are the AI retreat manager in RetReach. You have full access to all retreat data and can take actions (like creating schedule items). You are NOT a generic assistant — every response must reference real names, dates, and numbers from the data below.
+  return `You are the AI retreat manager in RetReach. You have full access to all retreat data and can take actions. You are NOT a generic assistant — every response must reference real names, dates, and numbers from the data below.
 
 ${stageContext}
 
@@ -166,31 +152,33 @@ ${overdueText}
 ## Upcoming Deadlines
 ${upcomingText}
 
-## Schedule (${schedule.length} items across ${totalDays} days)
+## Schedule (${schedule.length} items, ${totalDays} days)
 ${scheduleText}
 
 ## Participants (${participants.length} registered — ${paidCount} paid, ${partialCount} partial, ${unpaidCount} unpaid)
 ${participantText}
 
-## Historical context
-${pastPatterns || 'No prior retreat data for this manager.'}
+## Historical context (from ALL your retreats — use this to suggest improvements, NOT as this retreat's data)
+${historicalContext || 'No prior retreat data yet.'}
 
-## Creating the schedule
-You have a create_schedule_items tool. Use it when the user asks to build, generate, or add to the schedule.
-- day_number is 1-based: Day 1 = ${retreat.start_date ? formatDate(retreat.start_date) : 'first day'}, Day ${totalDays} = ${retreat.end_date ? formatDate(retreat.end_date) : 'last day'}
-- After calling the tool, summarize what you created (e.g. "Created 21 items across 3 days — morning yoga at 7am, breakfast at 8:30am…")
+## Schedule creation — CONFIRMATION REQUIRED
+When asked to build, create, generate, or update the schedule:
+1. FIRST respond with the full proposed schedule as a formatted numbered list (Day X · HH:MM · Title · Location)
+2. End with: "Shall I add these [N] items to your agenda? Reply **yes** to confirm, or tell me what to adjust."
+3. Do NOT call create_schedule_items until the user explicitly confirms (yes / ok / sure / add them / looks good)
+4. After confirmation, call the tool and summarize what was created
 
 ## Drafting messages
-Always use real values. Never write [Vendor Name], [Date], [Amount] — substitute the actual data.
-Format emails as:
+Always use real values. Never write [Vendor Name], [Date], [Amount]. Substitute actual data.
+Format:
 Subject: …
 Body: …
-Address contacts by first name when available.
+Address contacts by first name.
 
-## General rules
+## Rules
 - Be concise — the manager is busy
-- Proactively flag overdue deadlines and unconfirmed vendors
-- When listing deadlines/status, use specific names and dates from the data above`
+- Proactively flag overdue deadlines and budget risks
+- When mentioning feedback patterns from past retreats, be specific about what to replicate or avoid`
 }
 
 // ── Route handler ──────────────────────────────────────────────────────────
@@ -201,30 +189,109 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const body: AgentRequest = await req.json()
-    const { message, retreat, vendors, participants, schedule, history } = body
+    const body = await req.json()
+    const { message, retreatId, history } = body
 
-    // Fetch past patterns
-    const [{ data: pastInteractions }, { data: allVendorRatings }] = await Promise.all([
-      supabase.from('ai_interactions').select('prompt, action_taken')
+    if (!retreatId) return NextResponse.json({ error: 'retreatId required' }, { status: 400 })
+
+    // Fetch this retreat's data (RLS ensures ownership)
+    const [
+      { data: retreat },
+      { data: vendors },
+      { data: participants },
+      { data: schedule },
+    ] = await Promise.all([
+      supabase.from('retreats').select('*').eq('id', retreatId).eq('manager_id', user.id).single(),
+      supabase.from('vendors').select('*').eq('retreat_id', retreatId).order('name'),
+      supabase.from('participants').select('*').eq('retreat_id', retreatId),
+      supabase.from('schedule_items').select('*, vendor:vendors(name,category)').eq('retreat_id', retreatId),
+    ])
+
+    if (!retreat) return NextResponse.json({ error: 'Retreat not found or access denied' }, { status: 404 })
+
+    // Build historical context from ALL manager's retreats
+    // Each query is wrapped so a missing table (migration not run) doesn't break the agent
+    const [
+      pastInteractionsResult,
+      vendorRatingsResult,
+      participantFeedbackResult,
+      managerFeedbackResult,
+    ] = await Promise.allSettled([
+      supabase.from('ai_interactions')
+        .select('prompt, action_taken')
         .eq('manager_id', user.id).eq('accepted', true)
         .order('created_at', { ascending: false }).limit(5),
       supabase.from('vendors')
         .select('name, category, rating, rating_notes, retreats!inner(manager_id)')
         .eq('retreats.manager_id', user.id).not('rating', 'is', null).limit(20),
+      supabase.from('participant_feedback')
+        .select('nps_score, what_loved, what_to_improve, retreat_id')
+        .order('submitted_at', { ascending: false }).limit(80),
+      supabase.from('manager_feedback')
+        .select('what_went_well, what_to_improve, lessons_learned, overall_rating, retreat_id')
+        .order('created_at', { ascending: false }).limit(10),
     ])
 
-    let pastPatterns = ''
-    if (pastInteractions?.length) {
-      pastPatterns += `Previously accepted suggestions:\n${pastInteractions.map(i => `- ${i.action_taken ?? i.prompt.slice(0, 80)}`).join('\n')}\n\n`
-    }
-    if (allVendorRatings?.length) {
-      pastPatterns += `Vendor ratings from past retreats:\n${allVendorRatings.map(v => `- ${v.name} (${v.category}): ${v.rating}/5${v.rating_notes ? ` — ${v.rating_notes}` : ''}`).join('\n')}`
+    const pastInteractions  = pastInteractionsResult.status  === 'fulfilled' ? (pastInteractionsResult.value.data  ?? []) : []
+    const allVendorRatings  = vendorRatingsResult.status     === 'fulfilled' ? (vendorRatingsResult.value.data     ?? []) : []
+    const allPFeedback      = participantFeedbackResult.status === 'fulfilled' ? (participantFeedbackResult.value.data ?? []) : []
+    const allMFeedback      = managerFeedbackResult.status   === 'fulfilled' ? (managerFeedbackResult.value.data   ?? []) : []
+
+    // Fetch retreat names for context (to label feedback by retreat name)
+    const feedbackRetreatIds = [...new Set([
+      ...allPFeedback.map(f => f.retreat_id),
+      ...allMFeedback.map(f => f.retreat_id),
+    ])]
+    let retreatNames: Record<string, string> = {}
+    if (feedbackRetreatIds.length > 0) {
+      const { data: retreatList } = await supabase
+        .from('retreats').select('id, name').in('id', feedbackRetreatIds)
+      retreatNames = Object.fromEntries((retreatList ?? []).map(r => [r.id, r.name]))
     }
 
-    const systemPrompt = buildSystemPrompt(retreat, vendors, participants, schedule, pastPatterns)
+    let historicalContext = ''
 
-    // Build message array — typed to satisfy OpenAI SDK
+    if (pastInteractions.length > 0) {
+      historicalContext += `Previously accepted AI suggestions:\n${pastInteractions.map(i => `- ${i.action_taken ?? i.prompt.slice(0, 80)}`).join('\n')}\n\n`
+    }
+    if (allVendorRatings.length > 0) {
+      historicalContext += `Vendor ratings from past retreats:\n${allVendorRatings.map(v => `- ${v.name} (${v.category}): ${v.rating}/5${v.rating_notes ? ` — ${v.rating_notes}` : ''}`).join('\n')}\n\n`
+    }
+    if (allPFeedback.length > 0) {
+      const withNps = allPFeedback.filter(f => f.nps_score != null)
+      const avgNps  = withNps.length > 0
+        ? (withNps.reduce((s, f) => s + (f.nps_score ?? 0), 0) / withNps.length).toFixed(1)
+        : '?'
+      historicalContext += `Participant feedback across all retreats (${allPFeedback.length} responses, avg NPS: ${avgNps}/10):\n`
+      historicalContext += allPFeedback.slice(0, 25).map(f => {
+        const name = retreatNames[f.retreat_id] ?? 'past retreat'
+        const parts: string[] = [`[${name}] NPS: ${f.nps_score ?? '?'}/10`]
+        if (f.what_loved)      parts.push(`loved: "${f.what_loved.slice(0, 80)}"`)
+        if (f.what_to_improve) parts.push(`improve: "${f.what_to_improve.slice(0, 80)}"`)
+        return `  - ${parts.join(' | ')}`
+      }).join('\n') + '\n\n'
+    }
+    if (allMFeedback.length > 0) {
+      historicalContext += `Your personal reflections from past retreats:\n`
+      historicalContext += allMFeedback.map(f => {
+        const name = retreatNames[f.retreat_id] ?? 'past retreat'
+        const parts: string[] = [`[${name}]`]
+        if (f.overall_rating)  parts.push(`rating: ${f.overall_rating}/5`)
+        if (f.what_went_well)  parts.push(`went well: "${f.what_went_well.slice(0, 80)}"`)
+        if (f.what_to_improve) parts.push(`improve: "${f.what_to_improve.slice(0, 80)}"`)
+        if (f.lessons_learned) parts.push(`lessons: "${f.lessons_learned.slice(0, 80)}"`)
+        return `  - ${parts.join(' | ')}`
+      }).join('\n')
+    }
+
+    const systemPrompt = buildSystemPrompt(
+      retreat,
+      vendors ?? [],
+      participants ?? [],
+      schedule ?? [],
+      historicalContext,
+    )
+
     type OAIMessage =
       | OpenAI.Chat.ChatCompletionSystemMessageParam
       | OpenAI.Chat.ChatCompletionUserMessageParam
@@ -233,15 +300,15 @@ export async function POST(req: NextRequest) {
 
     const chatMessages: OAIMessage[] = [
       { role: 'system', content: systemPrompt },
-      ...history.map(h => ({ role: h.role, content: h.content } as OAIMessage)),
+      ...(history ?? []).map((h: { role: 'user' | 'assistant'; content: string }) =>
+        ({ role: h.role, content: h.content } as OAIMessage)
+      ),
       { role: 'user', content: message },
     ]
 
-    // Track actions performed so the frontend can refresh
     const actionsPerformed: Array<{ type: string; count?: number }> = []
     const openai = getOpenAI()
 
-    // Tool-calling loop — keeps running until the model stops calling tools
     let completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       max_tokens: 2048,
@@ -255,8 +322,8 @@ export async function POST(req: NextRequest) {
       chatMessages.push(assistantMsg as OAIMessage)
 
       for (const toolCall of assistantMsg.tool_calls ?? []) {
-        let toolResult = ''
         if (toolCall.type !== 'function') continue
+        let toolResult = ''
 
         if (toolCall.function.name === 'create_schedule_items') {
           const args = JSON.parse(toolCall.function.arguments) as {
@@ -268,11 +335,11 @@ export async function POST(req: NextRequest) {
           }
 
           if (args.replace_existing) {
-            await supabase.from('schedule_items').delete().eq('retreat_id', retreat.id)
+            await supabase.from('schedule_items').delete().eq('retreat_id', retreatId)
           }
 
           const rows = args.items.map(item => ({
-            retreat_id: retreat.id,
+            retreat_id: retreatId,
             day_number: item.day_number,
             date: retreat.start_date ? addDays(retreat.start_date, item.day_number - 1) : new Date().toISOString().slice(0, 10),
             start_time: item.start_time,
@@ -286,19 +353,14 @@ export async function POST(req: NextRequest) {
           if (error) {
             toolResult = `Error: ${error.message}`
           } else {
-            toolResult = `Created ${rows.length} schedule items.`
+            toolResult = `Created ${rows.length} schedule items successfully.`
             actionsPerformed.push({ type: 'schedule_created', count: rows.length })
           }
         }
 
-        chatMessages.push({
-          role: 'tool',
-          tool_call_id: toolCall.id,
-          content: toolResult,
-        })
+        chatMessages.push({ role: 'tool', tool_call_id: toolCall.id, content: toolResult })
       }
 
-      // Continue conversation after tool results
       completion = await openai.chat.completions.create({
         model: 'gpt-4o',
         max_tokens: 1024,
@@ -313,7 +375,7 @@ export async function POST(req: NextRequest) {
     const { data: interaction } = await supabase
       .from('ai_interactions')
       .insert({
-        retreat_id: retreat.id,
+        retreat_id: retreatId,
         manager_id: user.id,
         prompt: message,
         response,

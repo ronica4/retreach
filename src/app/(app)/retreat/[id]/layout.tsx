@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import RetreatSidebar from '@/components/retreat/RetreatSidebar'
+import AgentDrawer from '@/components/retreat/AgentDrawer'
 
 interface Props {
   children: React.ReactNode
@@ -37,6 +38,7 @@ export default async function RetreatLayout({ children, params }: Props) {
           {children}
         </div>
       </main>
+      <AgentDrawer retreat={retreat} />
     </div>
   )
 }

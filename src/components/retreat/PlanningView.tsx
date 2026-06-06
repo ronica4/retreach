@@ -5,7 +5,6 @@ import { type Retreat, type Vendor, type Participant, type ScheduleItem } from '
 import VendorSection from './VendorSection'
 import ScheduleSection from './ScheduleSection'
 import ParticipantSection from './ParticipantSection'
-import AgentPanel from './AgentPanel'
 import { formatCurrency } from '@/lib/utils'
 import { Users, Building2, Calendar, DollarSign } from 'lucide-react'
 
@@ -23,8 +22,8 @@ export default function PlanningView({ retreat, vendors, participants, schedule 
   const budgetPct = retreat.budget > 0 ? Math.min((spent / retreat.budget) * 100, 100) : 0
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 space-y-6">
+    <div className="space-y-6">
+      <div className="space-y-6">
         <div className="grid grid-cols-3 gap-3">
           <StatCard icon={<Building2 size={16} />} label="Vendors" value={vendors.length} />
           <StatCard icon={<Users size={16} />} label="Participants" value={participants.length} />
@@ -74,9 +73,6 @@ export default function PlanningView({ retreat, vendors, participants, schedule 
         </div>
       </div>
 
-      <div className="lg:col-span-1">
-        <AgentPanel retreat={retreat} vendors={vendors} participants={participants} schedule={schedule} />
-      </div>
     </div>
   )
 }
