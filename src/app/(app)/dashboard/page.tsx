@@ -4,6 +4,7 @@ import { getRetreatStage, formatDate, daysUntil, formatCurrency } from '@/lib/ut
 import { type Retreat } from '@/types'
 import { Plus, MapPin, Calendar, DollarSign } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import DeleteRetreatButton from '@/components/dashboard/DeleteRetreatButton'
 
 const stageConfig = {
   planning: { label: 'Planning', color: 'bg-emerald-100 text-emerald-700' },
@@ -90,9 +91,11 @@ function RetreatCard({ retreat }: { retreat: Retreat }) {
   const days = daysUntil(retreat.start_date)
 
   return (
+    <div className="relative group">
+    <DeleteRetreatButton retreatId={retreat.id} />
     <Link
       href={`/retreat/${retreat.id}/planning`}
-      className="block bg-white rounded-2xl ring-1 ring-stone-200 card p-5 hover:ring-emerald-300 hover:shadow-md transition-all group"
+      className="block bg-white rounded-2xl ring-1 ring-stone-200 card p-5 hover:ring-emerald-300 hover:shadow-md transition-all"
     >
       <div className="flex items-start justify-between mb-3">
         <h3 className="font-semibold text-stone-900 group-hover:text-emerald-700 transition-colors">
@@ -121,5 +124,6 @@ function RetreatCard({ retreat }: { retreat: Retreat }) {
         </div>
       </div>
     </Link>
+    </div>
   )
 }
