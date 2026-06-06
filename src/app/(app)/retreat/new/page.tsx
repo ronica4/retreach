@@ -192,7 +192,7 @@ export default function NewRetreatPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="bg-white rounded-2xl ring-1 ring-stone-200 card p-6 space-y-4">
               <h2 className="text-sm font-semibold text-stone-700 flex items-center gap-1.5">
-                <Compass size={14} className="text-stone-400" /> Retreat details
+                <Compass size={14} className="text-stone-400" /> Retreat info
               </h2>
 
               <div>
