@@ -9,6 +9,7 @@ import AgentPanel from '@/components/retreat/AgentPanel'
 import {
   Edit2, Check, X, MapPin, Calendar, DollarSign, FileText, Users, Handshake,
   CalendarDays, Sparkles, Circle, CheckCircle2, PenLine, Lightbulb, Wallet,
+  CalendarPlus, ChevronDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -200,6 +201,11 @@ export default function PlanningStage({ retreat, vendors, participants, schedule
                   </span>
                 )}
               </div>
+              {retreat.start_date && retreat.end_date && (
+                <div className="mt-3 pt-3 border-t border-stone-100">
+                  <AddToCalendarButton retreat={retreat} />
+                </div>
+              )}
             </>
           )}
         </div>
@@ -324,6 +330,96 @@ function StatCard({ icon, label, value, sub }: { icon: React.ReactNode; label: s
       </div>
       <p className="text-2xl font-semibold text-stone-800">{value}</p>
       <p className="text-xs text-stone-400 mt-0.5">{sub}</p>
+    </div>
+  )
+}
+
+// ── Add to Calendar ────────────────────────────────────────────────────────
+
+function toCalDate(dateStr: string) {
+  return dateStr.replace(/-/g, '')
+}
+
+// iCal DTEND is exclusive — add 1 day to the end date
+function iCalEndDate(dateStr: string) {
+  const d = new Date(dateStr + 'T00:00:00')
+  d.setDate(d.getDate() + 1)
+  return d.toISOString().slice(0, 10).replace(/-/g, '')
+}
+
+function AddToCalendarButton({ retreat }: { retreat: Retreat }) {
+  const [open, setOpen] = useState(false)
+
+  const title    = encodeURIComponent(retreat.name)
+  const location = encodeURIComponent(retreat.destination)
+  const details  = encodeURIComponent(
+    [retreat.concept, retreat.destination].filter(Boolean).join(' · ')
+  )
+  const start = toCalDate(retreat.start_date)
+  const end   = toCalDate(retreat.end_date)
+
+  const googleUrl =
+    `https://calendar.google.com/calendar/render?action=TEMPLATE` +
+    `&text=${title}&dates=${start}%2F${end}&details=${details}&location=${location}`
+
+  function downloadIcs() {
+    const icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//RetReach//EN',
+      'BEGIN:VEVENT',
+      `DTSTART;VALUE=DATE:${start}`,
+      `DTEND;VALUE=DATE:${iCalEndDate(retreat.end_date)}`,
+      `SUMMARY:${retreat.name}`,
+      `DESCRIPTION:${[retreat.concept, retreat.destination].filter(Boolean).join(' - ')}`,
+      `LOCATION:${retreat.destination}`,
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n')
+
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = `${retreat.name.replace(/\s+/g, '-')}.ics`
+    a.click()
+    URL.revokeObjectURL(url)
+    setOpen(false)
+  }
+
+  return (
+    <div className="relative inline-block">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 text-xs font-semibold text-stone-600 hover:text-emerald-700 hover:bg-emerald-50 ring-1 ring-stone-200 hover:ring-emerald-200 rounded-lg px-3 py-1.5 transition"
+      >
+        <CalendarPlus size={13} />
+        Add to calendar
+        <ChevronDown size={11} className={cn('transition-transform', open && 'rotate-180')} />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 top-full mt-1 z-20 bg-white ring-1 ring-stone-200 rounded-xl shadow-lg py-1 w-44 fade-up">
+            <a
+              href={googleUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 transition"
+            >
+              <span className="text-base">📅</span> Google Calendar
+            </a>
+            <button
+              onClick={downloadIcs}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 transition"
+            >
+              <span className="text-base">📥</span> Download .ics
+            </button>
+          </div>
+        </>
+      )}
     </div>
   )
 }

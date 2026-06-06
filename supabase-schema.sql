@@ -123,16 +123,30 @@ create table public.schedule_items (
   retreat_id uuid references public.retreats(id) on delete cascade not null,
   title text not null,
   description text,
+  day_number integer not null default 1,
   date date not null,
   start_time time not null,
   end_time time,
   vendor_id uuid references public.vendors(id) on delete set null,
   location text,
   item_type text default 'session' check (item_type in ('session','meal','transport','activity','other')),
+  track text default 'Main' check (track in ('Main','Ops','Reminders')),
   created_at timestamptz default now()
 );
 alter table public.schedule_items enable row level security;
 create policy "Managers can manage schedule" on public.schedule_items for all
+  using (exists (select 1 from public.retreats r where r.id = retreat_id and r.manager_id = auth.uid()));
+
+-- Schedule Day Titles
+create table public.schedule_day_titles (
+  id uuid default gen_random_uuid() primary key,
+  retreat_id uuid references public.retreats(id) on delete cascade not null,
+  day_number integer not null,
+  title text not null default '',
+  unique(retreat_id, day_number)
+);
+alter table public.schedule_day_titles enable row level security;
+create policy "Managers can manage day titles" on public.schedule_day_titles for all
   using (exists (select 1 from public.retreats r where r.id = retreat_id and r.manager_id = auth.uid()));
 
 -- Notifications

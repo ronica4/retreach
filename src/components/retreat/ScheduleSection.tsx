@@ -36,9 +36,16 @@ export default function ScheduleSection({ retreat, schedule, vendors }: Props) {
     e.preventDefault()
     setLoading(true)
     const supabase = createClient()
+    const dayNumber = retreat.start_date
+      ? Math.max(1, Math.round(
+          (new Date(form.date + 'T00:00:00').getTime() - new Date(retreat.start_date + 'T00:00:00').getTime())
+          / 86400000
+        ) + 1)
+      : 1
     await supabase.from('schedule_items').insert({
       retreat_id: retreat.id,
       title: form.title,
+      day_number: dayNumber,
       date: form.date,
       start_time: form.start_time,
       end_time: form.end_time || null,

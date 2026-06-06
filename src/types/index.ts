@@ -100,12 +100,14 @@ export interface ScheduleItem {
   retreat_id: string
   title: string
   description: string | null
+  day_number: number | null
   date: string
   start_time: string
   end_time: string | null
   vendor_id: string | null
   location: string | null
   item_type: 'session' | 'meal' | 'transport' | 'activity' | 'other'
+  track: string | null
   created_at: string
   vendor?: Vendor
 }
@@ -115,12 +117,15 @@ export interface Notification {
   retreat_id: string
   recipient_type: 'vendor' | 'participant' | 'manager'
   recipient_id: string
+  recipient_name: string | null
+  recipient_email: string | null
   channel: 'email' | 'sms' | 'push'
   subject: string
   body: string
   status: 'pending' | 'sent' | 'failed'
   scheduled_for: string | null
   sent_at: string | null
+  trigger_key: string | null
   created_at: string
 }
 

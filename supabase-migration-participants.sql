@@ -1,0 +1,31 @@
+-- Migration: add expanded participant fields
+-- Run in Supabase SQL editor if your participants table was created before these columns were added.
+
+alter table public.participants
+  add column if not exists age integer,
+  add column if not exists gender text,
+  add column if not exists city_country text,
+  add column if not exists occupation text,
+  add column if not exists languages text,
+  add column if not exists first_retreat boolean,
+  add column if not exists how_heard text,
+  add column if not exists motivation text,
+  add column if not exists hoping_to_gain text,
+  add column if not exists skills_to_share text,
+  add column if not exists hobbies text,
+  add column if not exists fun_fact text,
+  add column if not exists dietary_needs text,
+  add column if not exists food_preferences text,
+  add column if not exists tshirt_size text,
+  add column if not exists activity_level text check (activity_level in ('Beginner','Intermediate','Advanced')),
+  add column if not exists wellness_experience text,
+  add column if not exists rooming_preference text check (rooming_preference in ('Private','Shared')),
+  add column if not exists emergency_contact_name text,
+  add column if not exists emergency_contact_relationship text,
+  add column if not exists emergency_contact_phone text,
+  add column if not exists additional_info text,
+  add column if not exists photo_consent boolean,
+  add column if not exists stay_connected boolean,
+  add column if not exists custom_answers jsonb,
+  add column if not exists payment_amount numeric default 0,
+  add column if not exists notes text;

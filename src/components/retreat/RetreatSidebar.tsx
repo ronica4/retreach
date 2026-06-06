@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import {
   Sprout, ArrowLeft, MapPin, Calendar,
   Compass, Handshake, Users, CalendarDays, LayoutDashboard,
-  Zap, Star, MessageSquare, FolderOpen, CheckCircle2,
+  Zap, Star, MessageSquare, FolderOpen, CheckCircle2, Bell,
 } from 'lucide-react'
 
 interface Props {
@@ -24,8 +24,9 @@ const PHASES = [
       { id: 'planning',     label: 'Planning',      Icon: Compass,          desc: 'Retreat concept & details' },
       { id: 'vendors',      label: 'Vendors',        Icon: Handshake,        desc: 'Manage suppliers' },
       { id: 'participants', label: 'Participants',   Icon: Users,            desc: 'Guest registration' },
-      { id: 'agenda',       label: 'Agenda',         Icon: CalendarDays,     desc: 'Schedule & timeline' },
-      { id: 'pre',          label: 'Pre-event',      Icon: LayoutDashboard,  desc: 'Final overview' },
+      { id: 'agenda',         label: 'Agenda',         Icon: CalendarDays,     desc: 'Schedule & timeline' },
+      { id: 'notifications',  label: 'Notifications',  Icon: Bell,             desc: 'Reminders & comms' },
+      { id: 'pre',            label: 'Pre-event',      Icon: LayoutDashboard,  desc: 'Final overview' },
     ],
   },
   {

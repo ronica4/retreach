@@ -1,13 +1,15 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { type Retreat, type Vendor, type Participant, type ScheduleItem } from '@/types'
-import { Send, Bot, User, Loader2, CheckCircle, XCircle } from 'lucide-react'
+import { Send, Bot, User, Loader2, CheckCircle, XCircle, CalendarDays } from 'lucide-react'
 
 interface Message {
   role: 'user' | 'assistant'
   content: string
   interactionId?: string
+  actions?: Array<{ type: string; count?: number }>
 }
 
 interface Props {
@@ -18,10 +20,11 @@ interface Props {
 }
 
 export default function AgentPanel({ retreat, vendors, participants, schedule }: Props) {
+  const router = useRouter()
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: `Hi! I'm your RetReach manager for **${retreat.name}**. I know your full schedule, all ${vendors.length} vendors, and ${participants.length} participants. Ask me anything — I can draft messages, flag issues, update you on deadlines, or help you think through logistics.`,
+      content: `Hi! I'm your RetReach manager for **${retreat.name}**. I know your full schedule, all ${vendors.length} vendors, and ${participants.length} participants.\n\nI can:\n• Draft emails to specific vendors with their real deadlines and deliverables\n• Build or update the schedule for you — just ask\n• Flag overdue items and budget risks\n• Answer any question about this retreat`,
     },
   ])
   const [input, setInput] = useState('')
@@ -65,7 +68,11 @@ export default function AgentPanel({ retreat, vendors, participants, schedule }:
         role: 'assistant',
         content: data.response,
         interactionId: data.interactionId,
+        actions: data.actionsPerformed,
       }])
+      if (data.actionsPerformed?.length > 0) {
+        router.refresh()
+      }
     } catch {
       setMessages(prev => [...prev, {
         role: 'assistant',
@@ -117,6 +124,12 @@ export default function AgentPanel({ retreat, vendors, participants, schedule }:
               }`}>
                 {msg.content}
               </div>
+              {msg.actions?.some(a => a.type === 'schedule_created') && (
+                <div className="flex items-center gap-1.5 mt-1.5 text-xs text-emerald-700 bg-emerald-50 ring-1 ring-emerald-200 rounded-lg px-2.5 py-1.5">
+                  <CalendarDays size={12} />
+                  Schedule updated — open the Agenda tab to see it
+                </div>
+              )}
               {msg.interactionId && (
                 <div className="flex items-center gap-1.5 mt-1">
                   <span className="text-xs text-stone-400">Was this helpful?</span>
@@ -163,7 +176,7 @@ export default function AgentPanel({ retreat, vendors, participants, schedule }:
             <Send size={15} />
           </button>
         </div>
-        <p className="text-xs text-stone-300 mt-1.5 text-center">Try: "Draft an email to the hotel" or "What deadlines are coming up?"</p>
+        <p className="text-xs text-stone-300 mt-1.5 text-center">Try: "Build me a 3-day schedule" · "Draft an email to the hotel" · "Who hasn't paid?"</p>
       </div>
     </div>
   )
