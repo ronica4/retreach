@@ -80,7 +80,7 @@ export default function RetreatSidebar({ retreat, vendorCount, participantCount 
           <div className="size-7 rounded-lg bg-emerald-700 grid place-items-center text-white shrink-0">
             <Sprout size={13} />
           </div>
-          <span className="text-sm font-semibold text-white">Retreat OS</span>
+          <span className="text-sm font-semibold text-white">RetReach</span>
         </div>
       </div>
 
