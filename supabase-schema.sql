@@ -22,6 +22,9 @@ create table public.retreats (
   start_date date not null,
   end_date date not null,
   budget numeric(10,2) not null default 0,
+  number_of_participants integer,
+  hotel_budget numeric(10,2),
+  flight_budget numeric(10,2),
   stage_override text check (stage_override in ('planning','active','closed')),
   created_at timestamptz default now(),
   updated_at timestamptz default now()
@@ -116,6 +119,45 @@ create table public.ai_interactions (
 );
 alter table public.ai_interactions enable row level security;
 create policy "Managers can manage own ai interactions" on public.ai_interactions for all using (auth.uid() = manager_id);
+
+-- Agoda City IDs (lookup table for hotel destinations)
+create table public.agoda_city_ids (
+  id uuid default gen_random_uuid() primary key,
+  city_name text not null unique,
+  country text not null,
+  agoda_city_id integer not null,
+  latitude decimal(10,8),
+  longitude decimal(11,8),
+  created_at timestamptz default now()
+);
+alter table public.agoda_city_ids enable row level security;
+create policy "Anyone can read city lookups" on public.agoda_city_ids for select using (true);
+
+-- Flight Airport Codes (IATA airport codes for flight searches)
+create table public.flight_airport_codes (
+  id uuid default gen_random_uuid() primary key,
+  iata_code text not null unique,
+  airport_name text not null,
+  city text not null,
+  country text not null,
+  latitude decimal(10,8),
+  longitude decimal(11,8),
+  created_at timestamptz default now()
+);
+alter table public.flight_airport_codes enable row level security;
+create policy "Anyone can read airport lookups" on public.flight_airport_codes for select using (true);
+
+-- Vendor Search Results (cache of API responses)
+create table public.vendor_search_results (
+  id uuid default gen_random_uuid() primary key,
+  retreat_id uuid references public.retreats(id) on delete cascade not null,
+  search_type text not null check (search_type in ('hotel','flight')),
+  api_response_json jsonb not null,
+  created_at timestamptz default now()
+);
+alter table public.vendor_search_results enable row level security;
+create policy "Managers can view search results for own retreats" on public.vendor_search_results for all
+  using (exists (select 1 from public.retreats r where r.id = retreat_id and r.manager_id = auth.uid()));
 
 -- Auto-update updated_at on retreats
 create or replace function update_updated_at()

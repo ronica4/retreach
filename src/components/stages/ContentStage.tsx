@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, FolderOpen, ExternalLink } from 'lucide-react'
+import { Plus, Trash2, FolderOpen, ExternalLink, Image, Video, Presentation, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ContentLink {
@@ -18,7 +18,14 @@ interface Props {
 
 const LS_KEY = (id: string) => `retreach_content_${id}`
 
-const TYPE_COLORS: Record<string, string> = {
+const TYPES: { key: ContentLink['type']; label: string; icon: React.ReactNode; bg: string; text: string }[] = [
+  { key: 'photos', label: 'Photos',       icon: <Image size={15} />,        bg: 'bg-emerald-50 ring-emerald-200', text: 'text-emerald-700' },
+  { key: 'videos', label: 'Videos',       icon: <Video size={15} />,        bg: 'bg-amber-50 ring-amber-200',    text: 'text-amber-700' },
+  { key: 'decks',  label: 'Decks',        icon: <Presentation size={15} />, bg: 'bg-stone-100 ring-stone-200',   text: 'text-stone-600' },
+  { key: 'other',  label: 'Other',        icon: <FileText size={15} />,     bg: 'bg-stone-50 ring-stone-200',    text: 'text-stone-500' },
+]
+
+const TYPE_CHIP: Record<string, string> = {
   photos: 'bg-emerald-100 text-emerald-700',
   videos: 'bg-amber-100 text-amber-700',
   decks:  'bg-stone-100 text-stone-600',
@@ -79,6 +86,22 @@ export default function ContentStage({ retreatId }: Props) {
         </button>
       </div>
 
+      {/* count tiles */}
+      <div className="grid grid-cols-4 gap-3 mb-5">
+        {TYPES.map(t => {
+          const count = (grouped[t.key] ?? []).length
+          return (
+            <div key={t.key} className={cn('ring-1 card rounded-2xl p-4 flex flex-col gap-2', t.bg)}>
+              <div className={cn('flex items-center gap-1.5', t.text)}>
+                {t.icon}
+                <span className="text-xs font-semibold">{t.label}</span>
+              </div>
+              <div className={cn('text-2xl font-bold tabular-nums', count ? t.text : 'text-stone-400')}>{count}</div>
+            </div>
+          )
+        })}
+      </div>
+
       {showForm && (
         <form onSubmit={addLink} className="bg-emerald-50 ring-1 ring-emerald-200 rounded-2xl p-5 space-y-3 mb-5 fade-up">
           <div><label className={labelCls}>Title *</label>
@@ -87,12 +110,12 @@ export default function ContentStage({ retreatId }: Props) {
             <input required type="url" value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} placeholder="https://…" className={inputCls} /></div>
           <div><label className={labelCls}>Type</label>
             <div className="flex gap-2 flex-wrap">
-              {(['photos', 'videos', 'decks', 'other'] as const).map(t => (
-                <button key={t} type="button" onClick={() => setForm(f => ({ ...f, type: t }))}
+              {TYPES.map(t => (
+                <button key={t.key} type="button" onClick={() => setForm(f => ({ ...f, type: t.key }))}
                   className={cn('px-3 py-1.5 text-sm rounded-lg ring-1 capitalize transition-colors',
-                    form.type === t ? 'bg-emerald-700 text-white ring-emerald-700' : 'bg-white text-stone-600 ring-stone-200 hover:ring-stone-300'
+                    form.type === t.key ? 'bg-emerald-700 text-white ring-emerald-700' : 'bg-white text-stone-600 ring-stone-200 hover:ring-stone-300'
                   )}>
-                  {t}
+                  {t.label}
                 </button>
               ))}
             </div>
@@ -106,16 +129,16 @@ export default function ContentStage({ retreatId }: Props) {
 
       {links.length > 0 ? (
         <div className="space-y-5">
-          {Object.entries(grouped).map(([type, items]) => (
-            <div key={type}>
-              <h2 className="text-xs font-bold text-stone-400 uppercase tracking-wide mb-2 capitalize">{type}</h2>
+          {TYPES.filter(t => grouped[t.key]?.length).map(t => (
+            <div key={t.key}>
+              <h2 className="text-xs font-bold text-stone-400 uppercase tracking-wide mb-2 capitalize">{t.label}</h2>
               <div className="space-y-2">
-                {items.map(link => (
+                {(grouped[t.key] ?? []).map(link => (
                   <div key={link.id} className="bg-white ring-1 ring-stone-200 card rounded-xl p-3.5 flex items-center justify-between group hover:ring-stone-300 transition-all">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-medium text-stone-900 truncate">{link.title}</p>
-                        <span className={cn('text-xs px-1.5 py-0.5 rounded-full capitalize shrink-0', TYPE_COLORS[link.type])}>{link.type}</span>
+                        <span className={cn('text-xs px-1.5 py-0.5 rounded-full capitalize shrink-0', TYPE_CHIP[link.type])}>{link.type}</span>
                       </div>
                       <p className="text-xs text-stone-400 truncate mt-0.5">{link.url}</p>
                     </div>

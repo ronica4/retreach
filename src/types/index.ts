@@ -9,6 +9,9 @@ export interface Retreat {
   start_date: string
   end_date: string
   budget: number
+  number_of_participants: number | null
+  hotel_budget: number | null
+  flight_budget: number | null
   stage_override: RetreatStage | null
   created_at: string
   updated_at: string
