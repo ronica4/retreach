@@ -57,11 +57,12 @@ const labelCls = 'text-xs font-semibold text-stone-400 mb-1 block'
 
 // ── root component ─────────────────────────────────────────────────────────
 export default function VendorsStage({ retreat, vendors }: Props) {
-  const [tab, setTab] = useState<'manage' | 'catalog'>('manage')
+  // Catalog (the company-wide vendor database) is the default landing view.
+  const [tab, setTab] = useState<'catalog' | 'manage'>('catalog')
   const otherCount = vendors.filter(v => v.category !== 'hotel' && v.category !== 'flights').length
   const tabs = [
-    { id: 'manage' as const,  label: 'Manage',  Icon: ClipboardList },
     { id: 'catalog' as const, label: 'Catalog', Icon: LibraryBig },
+    { id: 'manage' as const,  label: 'This retreat', Icon: ClipboardList },
   ]
   return (
     <div>
@@ -69,12 +70,22 @@ export default function VendorsStage({ retreat, vendors }: Props) {
       <div className="flex flex-wrap items-end justify-between gap-4 mb-6 fade-up">
         <div>
           <h1 className="text-xl font-semibold text-stone-800">Vendors</h1>
-          <p className="text-sm text-stone-400 mt-0.5">{otherCount} supplier{otherCount !== 1 ? 's' : ''} · flights &amp; hotels have their own tabs</p>
+          <p className="text-sm text-stone-400 mt-0.5">{otherCount} in this retreat · flights &amp; hotels have their own tabs</p>
+        </div>
+        <div className="flex items-center gap-1 bg-white rounded-lg ring-1 ring-stone-200 p-1">
+          {tabs.map(({ id, label, Icon }) => (
+            <button key={id} onClick={() => setTab(id)}
+              className={cn('flex items-center gap-1.5 text-sm font-semibold rounded-md px-3 py-1.5 transition',
+                tab === id ? 'bg-emerald-700 text-white' : 'text-stone-500 hover:text-stone-800'
+              )}>
+              <Icon size={13} /> {label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {tab === 'manage'  && <ManageTab retreat={retreat} vendors={vendors} />}
       {tab === 'catalog' && <VendorCatalogTab retreat={retreat} vendors={vendors} />}
+      {tab === 'manage'  && <ManageTab retreat={retreat} vendors={vendors} />}
     </div>
   )
 }
