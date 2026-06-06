@@ -99,7 +99,6 @@ export async function POST(req: NextRequest) {
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
-      max_tokens: 8000,
       tool_choice: { type: 'function', function: { name: 'create_schedule' } },
       tools: [{
         type: 'function',
