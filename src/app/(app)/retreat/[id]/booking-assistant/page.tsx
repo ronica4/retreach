@@ -20,6 +20,25 @@ export default function BookingAssistantPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const [hotelBudgetPercent, setHotelBudgetPercent] = useState(60)
+  const [flightBudgetPercent, setFlightBudgetPercent] = useState(40)
+
+  const [hotelResults, setHotelResults] = useState<HotelResult[]>([])
+  const [flightResults, setFlightResults] = useState<FlightResult[]>([])
+  const [searchingHotels, setSearchingHotels] = useState(false)
+  const [searchingFlights, setSearchingFlights] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
+
+  const [provisionalSelections, setProvisionalSelections] = useState<{
+    hotels: ProvisionalHotel[]
+    flights: ProvisionalFlight[]
+  }>({
+    hotels: [],
+    flights: [],
+  })
+
+  const [confirmingSelections, setConfirmingSelections] = useState(false)
+
   const [searchStep, setSearchStep] = useState<'flights' | 'hotels' | 'both'>('flights')
 
   // Load retreat data
