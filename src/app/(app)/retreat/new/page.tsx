@@ -10,7 +10,7 @@ import DestinationSelector from '@/components/booking/DestinationSelector'
 import {
   ArrowLeft, Sprout, MapPin, Calendar, Compass, Handshake,
   Users, CalendarDays, LayoutDashboard, Zap, MessageSquare,
-  FolderOpen, CheckCircle2, Bot, Sparkles, Circle,
+  FolderOpen, CheckCircle2, Bot, Sparkles, Circle, Plane, Building2,
 } from 'lucide-react'
 
 const PHASES = [
@@ -18,7 +18,9 @@ const PHASES = [
     group: 'BEFORE',
     stages: [
       { id: 'planning',     label: 'Planning',      Icon: Compass,         desc: 'Define the retreat' },
-      { id: 'vendors',      label: 'Vendors',        Icon: Handshake,       desc: 'Coordination & AI reminders' },
+      { id: 'flights',      label: 'Flights',        Icon: Plane,           desc: 'Search & book flights' },
+      { id: 'hotels',       label: 'Hotels',         Icon: Building2,       desc: 'Search & book lodging' },
+      { id: 'vendors',      label: 'Vendors',        Icon: Handshake,       desc: 'All other suppliers' },
       { id: 'participants', label: 'Participants',   Icon: Users,           desc: 'Registration & payments' },
       { id: 'agenda',       label: 'Agenda',         Icon: CalendarDays,    desc: 'Build the daily schedule' },
       { id: 'pre',          label: 'Overview',       Icon: LayoutDashboard, desc: 'Timeline, tasks & alerts' },

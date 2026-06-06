@@ -10,8 +10,9 @@ import {
   Plus, Upload, Download, Phone, Mail, Clock, MessageSquare, Copy, Check,
   PenLine, X, ThumbsUp, ThumbsDown, Sparkles, ClipboardList, Bell,
   Building2, Plane, Bus, HeartHandshake, UtensilsCrossed, Camera,
-  Lightbulb, Palette, Package, Loader2, CheckCircle2,
+  Lightbulb, Palette, Package, Loader2, CheckCircle2, LibraryBig,
 } from 'lucide-react'
+import VendorCatalogTab from './VendorCatalogTab'
 
 interface Props {
   retreat: Retreat
@@ -59,7 +60,6 @@ const CONCEPTS: Record<string, { label: string; missing: { key: CatKey; reason: 
     label: 'Wellness retreat',
     missing: [
       { key: 'hotel', reason: 'A calm nature venue books out months ahead — lock dates first.', deliverable: 'Sign contract & pay deposit' },
-      { key: 'food', reason: 'Wellness crowds expect fresh, dietary-friendly food — confirm the menu early.', deliverable: 'Finalize plant-forward menu' },
       { key: 'attraction', reason: 'Yoga / breathwork leads anchor the whole agenda.', deliverable: 'Confirm sessions & schedule' },
       { key: 'transport', reason: 'Remote venues need a group shuttle so guests arrive together.', deliverable: 'Arrange shuttle from the city' },
     ],
@@ -68,7 +68,6 @@ const CONCEPTS: Record<string, { label: string; missing: { key: CatKey; reason: 
     label: 'Corporate offsite',
     missing: [
       { key: 'hotel', reason: 'You need reliable rooms with proper space for working sessions.', deliverable: 'Book venue + meeting rooms' },
-      { key: 'food', reason: 'Productive offsites run on good food and steady caffeine.', deliverable: 'Confirm meals & coffee breaks' },
       { key: 'merch', reason: 'Presentations and hybrid dial-ins fall apart without solid A/V.', deliverable: 'Set up screens, mics & wifi' },
       { key: 'attraction', reason: 'A neutral facilitator keeps strategy sessions on track.', deliverable: 'Brief facilitator on agenda' },
     ],
@@ -77,7 +76,6 @@ const CONCEPTS: Record<string, { label: string; missing: { key: CatKey; reason: 
     label: 'Celebration',
     missing: [
       { key: 'hotel', reason: 'Celebration venues book a season ahead — secure the date early.', deliverable: 'Reserve venue & sign contract' },
-      { key: 'food', reason: 'Food is half the experience — lock the menu and final numbers.', deliverable: 'Finalize menu & headcount' },
       { key: 'merch', reason: 'Great photographers get booked fast for celebrations.', deliverable: 'Book photographer & shot list' },
       { key: 'other', reason: 'Décor and flowers set the mood — approve the look in advance.', deliverable: 'Approve décor & flowers' },
     ],
@@ -88,7 +86,6 @@ const CONCEPTS: Record<string, { label: string; missing: { key: CatKey; reason: 
       { key: 'hotel', reason: 'Base camps near the action sell out in peak season.', deliverable: 'Book lodging near the trails' },
       { key: 'transport', reason: 'Reaching trailheads and remote sites needs reliable transport.', deliverable: 'Arrange 4×4 / shuttle logistics' },
       { key: 'attraction', reason: 'Safety on active routes depends on licensed guides.', deliverable: 'Confirm certified guides' },
-      { key: 'food', reason: 'Active days burn energy — plan hearty, portable meals.', deliverable: 'Plan trail meals & energy food' },
     ],
   },
 }
@@ -109,9 +106,11 @@ function detectConcept(retreat: Retreat) {
 
 // ── root component ─────────────────────────────────────────────────────────
 export default function VendorsStage({ retreat, vendors }: Props) {
-  const [tab, setTab] = useState<'manage' | 'find' | 'reminders'>('manage')
+  const [tab, setTab] = useState<'manage' | 'catalog' | 'find' | 'reminders'>('manage')
+  const otherCount = vendors.filter(v => v.category !== 'hotel' && v.category !== 'flights').length
   const tabs = [
     { id: 'manage' as const,    label: 'Manage',       Icon: ClipboardList },
+    { id: 'catalog' as const,   label: 'Catalog',      Icon: LibraryBig },
     { id: 'find' as const,      label: 'Find for me',  Icon: Sparkles },
     { id: 'reminders' as const, label: 'Reminders',    Icon: Bell },
   ]
@@ -121,7 +120,7 @@ export default function VendorsStage({ retreat, vendors }: Props) {
       <div className="flex flex-wrap items-end justify-between gap-4 mb-6 fade-up">
         <div>
           <h1 className="text-xl font-semibold text-stone-800">Vendors</h1>
-          <p className="text-sm text-stone-400 mt-0.5">{vendors.length} supplier{vendors.length !== 1 ? 's' : ''}</p>
+          <p className="text-sm text-stone-400 mt-0.5">{otherCount} supplier{otherCount !== 1 ? 's' : ''} · flights &amp; hotels have their own tabs</p>
         </div>
         <div className="flex items-center gap-1 bg-white rounded-lg ring-1 ring-stone-200 p-1">
           {tabs.map(({ id, label, Icon }) => (
@@ -136,6 +135,7 @@ export default function VendorsStage({ retreat, vendors }: Props) {
       </div>
 
       {tab === 'manage'    && <ManageTab retreat={retreat} vendors={vendors} />}
+      {tab === 'catalog'   && <VendorCatalogTab retreat={retreat} vendors={vendors} />}
       {tab === 'find'      && <FindTab retreat={retreat} vendors={vendors} />}
       {tab === 'reminders' && <RemindersTab retreat={retreat} vendors={vendors} />}
     </div>
@@ -155,11 +155,15 @@ function ManageTab({ retreat, vendors }: Props) {
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(''), 2200) }
 
-  const counts = vendors.reduce((acc, v) => {
+  // Flights & hotels have their own dedicated stages — this tab is "everything else".
+  const manageable = vendors.filter(v => v.category !== 'hotel' && v.category !== 'flights')
+  const otherCats  = CATS.filter(c => c.key !== 'hotel' && c.key !== 'flights')
+
+  const counts = manageable.reduce((acc, v) => {
     acc[v.category] = (acc[v.category] ?? 0) + 1; return acc
   }, {} as Record<string, number>)
 
-  const shown = filter === 'all' ? vendors : vendors.filter(v => v.category === filter)
+  const shown = filter === 'all' ? manageable : manageable.filter(v => v.category === filter)
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault(); if (!form.name.trim()) return; setLoading(true)
@@ -207,8 +211,8 @@ function ManageTab({ retreat, vendors }: Props) {
     <div>
       {/* category chips */}
       <div className="flex items-center gap-1.5 overflow-x-auto nice-scroll pb-2 mb-4">
-        <CatChip active={filter === 'all'} onClick={() => setFilter('all')} label="All" count={vendors.length} />
-        {CATS.map(c => (
+        <CatChip active={filter === 'all'} onClick={() => setFilter('all')} label="All" count={manageable.length} />
+        {otherCats.map(c => (
           <CatChip key={c.key} active={filter === c.key} onClick={() => setFilter(c.key)}
             label={c.label} count={counts[c.key] ?? 0} />
         ))}
@@ -429,7 +433,8 @@ function FindTab({ retreat, vendors }: Props) {
   const [added, setAdded] = useState<Record<string, true | 'dismissed'>>({})
   const concept = detectConcept(retreat)
   const have = new Set(vendors.map(v => v.category))
-  const suggestions = concept.missing.filter(s => !have.has(s.key) && added[s.key] !== 'dismissed')
+  const suggestions = concept.missing.filter(s =>
+    s.key !== 'hotel' && s.key !== 'flights' && !have.has(s.key) && added[s.key] !== 'dismissed')
 
   async function add(s: typeof concept.missing[0]) {
     if (added[s.key] === true) return
