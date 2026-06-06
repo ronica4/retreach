@@ -56,11 +56,10 @@ function durationPx(start: string, end?: string | null) {
   return Math.max(60, ((e - s) / 60) * PX_PER_HR)
 }
 
-// Add N days to a YYYY-MM-DD string
+// Add N days to a YYYY-MM-DD string — use UTC to avoid timezone shift
 function addDays(dateStr: string, days: number): string {
-  const d = new Date(dateStr + 'T00:00:00')
-  d.setDate(d.getDate() + days)
-  return d.toISOString().slice(0, 10)
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10)
 }
 
 // Compute day_number (1-based) from an absolute date relative to retreat start
@@ -119,6 +118,13 @@ export default function AgendaStage({ retreat, schedule, vendors }: Props) {
   const [suggesting, setSuggesting] = useState(false)
   const [confirmReset, setConfirmReset] = useState(false)
   const [dayTitles, setDayTitles]   = useState<Record<number, string>>({})
+
+  // Auto-open the AI agent drawer when the schedule is empty
+  useEffect(() => {
+    if (schedule.length === 0) {
+      window.dispatchEvent(new CustomEvent('retreach:open-agent'))
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const totalDays  = getDaysInRange(retreat.start_date, retreat.end_date)
   const dayNumbers = Array.from({ length: totalDays }, (_, i) => i + 1)

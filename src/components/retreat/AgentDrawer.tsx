@@ -1,12 +1,18 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Bot, X } from 'lucide-react'
 import type { Retreat } from '@/types'
 import AgentPanel from './AgentPanel'
 
 export default function AgentDrawer({ retreat }: { retreat: Retreat }) {
   const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    const handler = () => setOpen(true)
+    window.addEventListener('retreach:open-agent', handler)
+    return () => window.removeEventListener('retreach:open-agent', handler)
+  }, [])
 
   return (
     <>

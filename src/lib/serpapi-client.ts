@@ -73,10 +73,10 @@ export async function searchHotels(
   })
 
   const response = await fetch(`https://serpapi.com/search?${params}`)
-  if (!response.ok) throw new Error(`SerpAPI error: ${response.statusText}`)
-
   const data = await response.json()
-  if (data.error) throw new Error(`SerpAPI error: ${data.error}`)
+  if (!response.ok || data.error) {
+    throw new Error(data.error ?? `Hotel search failed (${response.status})`)
+  }
 
   return data.properties ?? []
 }
