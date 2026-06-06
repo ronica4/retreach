@@ -7,7 +7,7 @@ import { type Retreat, type Vendor, type ScheduleItem } from '@/types'
 import { formatDate } from '@/lib/utils'
 import {
   Plus, Trash2, Clock, Pencil, Check, X,
-  CalendarDays, RefreshCw, LayoutGrid, List, ChevronDown, CalendarPlus, AlertTriangle, Sparkles,
+  CalendarDays, RefreshCw, ChevronDown, CalendarPlus, AlertTriangle, Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -93,7 +93,6 @@ const labelCls = 'text-xs font-semibold text-stone-400 mb-0.5 block'
 
 export default function AgendaStage({ retreat, schedule, vendors }: Props) {
   const router = useRouter()
-  const [view, setView]       = useState<'list' | 'timeline'>('list')
   const [showAdd, setShowAdd] = useState(false)
   const [dayTitles, setDayTitles] = useState<Record<number, string>>({})
   const [autoGenerating, setAutoGenerating] = useState(false)
@@ -224,10 +223,6 @@ export default function AgendaStage({ retreat, schedule, vendors }: Props) {
             <p className="text-sm text-stone-400 mt-0.5">A daily schedule — sessions, meals, and logistics on one view.</p>
           </div>
         </div>
-        <div className="flex items-center gap-1 bg-stone-100 rounded-xl p-1 shrink-0">
-          <TabPill active={view === 'timeline'} onClick={() => setView('timeline')} icon={<LayoutGrid size={13} />} label="Timeline" />
-          <TabPill active={view === 'list'}     onClick={() => setView('list')}     icon={<List size={13} />}       label="List" />
-        </div>
       </div>
 
       {autoGenerating && (
@@ -336,17 +331,11 @@ export default function AgendaStage({ retreat, schedule, vendors }: Props) {
             {autoGenerating ? 'The AI is generating your retreat schedule.' : hasDate ? 'Ask the AI agent to create your schedule.' : 'Set retreat dates first.'}
           </p>
         </div>
-      ) : view === 'list' ? (
+      ) : (
         <ListView
           dayNumbers={dayNumbers} grouped={grouped} retreat={retreat} vendors={vendors}
           dayTitles={dayTitles} onSaveDayTitle={saveDayTitle}
           onDelete={handleDelete} onRefresh={router.refresh} onAddBlock={addBlock}
-        />
-      ) : (
-        <TimelineView
-          dayNumbers={dayNumbers} grouped={grouped} retreat={retreat}
-          dayTitles={dayTitles} onSaveDayTitle={saveDayTitle}
-          onDelete={handleDelete} onRefresh={router.refresh}
         />
       )}
     </div>

@@ -15,13 +15,18 @@ const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'create_schedule_items',
-      description: 'Create schedule items for the retreat. Only call this AFTER the user has confirmed the proposed schedule.',
+      description: 'Add or replace schedule items. Use days_to_clear to surgically replace specific days without touching others. NEVER use replace_all_existing unless the user explicitly asks to rebuild the ENTIRE schedule from scratch.',
       parameters: {
         type: 'object',
         properties: {
-          replace_existing: {
+          days_to_clear: {
+            type: 'array',
+            items: { type: 'integer' },
+            description: 'Day numbers whose existing items should be deleted before inserting the new ones. Use this for partial edits (e.g. "change day 2"). Leave empty to add items without removing anything.',
+          },
+          replace_all_existing: {
             type: 'boolean',
-            description: 'Delete all existing schedule items first.',
+            description: 'Delete ALL existing schedule items before inserting. Only use when the user explicitly asks to replace or regenerate the ENTIRE schedule.',
           },
           items: {
             type: 'array',
@@ -160,12 +165,18 @@ ${participantText}
 ## Historical context (from ALL your retreats — use this to suggest improvements, NOT as this retreat's data)
 ${historicalContext || 'No prior retreat data yet.'}
 
-## Schedule creation — CONFIRMATION REQUIRED
+## Schedule creation/editing — CONFIRMATION REQUIRED
 When asked to build, create, generate, or update the schedule:
-1. FIRST respond with the full proposed schedule as a formatted numbered list (Day X · HH:MM · Title · Location)
-2. End with: "Shall I add these [N] items to your agenda? Reply **yes** to confirm, or tell me what to adjust."
+1. FIRST respond with the proposed changes as a formatted list (Day X · HH:MM · Title · Location)
+2. End with: "Shall I apply these changes? Reply **yes** to confirm, or tell me what to adjust."
 3. Do NOT call create_schedule_items until the user explicitly confirms (yes / ok / sure / add them / looks good)
 4. After confirmation, call the tool and summarize what was created
+
+CRITICAL — partial edits:
+- If the user asks to change/update/fix SPECIFIC days or events, use days_to_clear with only those day numbers. NEVER use replace_all_existing for partial edits.
+- replace_all_existing = true ONLY when the user says "redo the whole schedule", "start over", or "replace everything".
+- If adding new items without removing existing ones, leave both days_to_clear and replace_all_existing unset.
+- Preserve ALL days and events that the user did not ask to change.
 
 ## Drafting messages
 Always use real values. Never write [Vendor Name], [Date], [Amount]. Substitute actual data.
@@ -312,15 +323,21 @@ export async function POST(req: NextRequest) {
 
         if (toolCall.function.name === 'create_schedule_items') {
           const args = JSON.parse(toolCall.function.arguments) as {
-            replace_existing?: boolean
+            days_to_clear?: number[]
+            replace_all_existing?: boolean
             items: Array<{
               day_number: number; start_time: string; end_time?: string
               title: string; item_type: string; location?: string
             }>
           }
 
-          if (args.replace_existing) {
+          if (args.replace_all_existing) {
             await supabase.from('schedule_items').delete().eq('retreat_id', retreatId)
+          } else if (args.days_to_clear && args.days_to_clear.length > 0) {
+            await supabase.from('schedule_items')
+              .delete()
+              .eq('retreat_id', retreatId)
+              .in('day_number', args.days_to_clear)
           }
 
           const rows = args.items.map(item => ({
