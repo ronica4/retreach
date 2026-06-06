@@ -6,13 +6,14 @@ import { useRouter } from 'next/navigation'
 import { type Retreat, type Participant, type Questionnaire, type CustomQuestion } from '@/types'
 import {
   Plus, Trash2, CheckCircle, Clock, XCircle,
-  ClipboardList, Users, DollarSign, Link2, Check,
+  ClipboardList, Users, DollarSign, Link2, Check, ChevronDown,
 } from 'lucide-react'
 import { cn, formatCurrency } from '@/lib/utils'
 
 interface Props {
   retreat: Retreat
   participants: Participant[]
+  customQuestions?: CustomQuestion[]
 }
 
 type QType = 'text' | 'textarea' | 'single' | 'multi'
@@ -41,9 +42,10 @@ const FIXED_FIELDS = [
 
 function newId() { return `q${Date.now()}` }
 
-export default function ParticipantsStage({ retreat, participants }: Props) {
+export default function ParticipantsStage({ retreat, participants, customQuestions = [] }: Props) {
   const router = useRouter()
   const [tab, setTab] = useState<'roster' | 'questionnaire'>('roster')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const paidCount    = participants.filter(p => p.payment_status === 'paid').length
   const collected    = participants.reduce((s, p) => s + (p.payment_amount ?? 0), 0)
@@ -109,31 +111,42 @@ export default function ParticipantsStage({ retreat, participants }: Props) {
             <div className="divide-y divide-stone-100">
               {participants.map(p => {
                 const { label, cls, Icon } = PAY_CONFIG[p.payment_status]
+                const open = expandedId === p.id
                 return (
-                  <div key={p.id} className="flex items-center gap-3 px-5 py-3.5 group hover:bg-stone-50 transition">
-                    <div className="size-8 rounded-full bg-emerald-100 text-emerald-700 grid place-items-center text-sm font-bold shrink-0">
-                      {p.name.charAt(0).toUpperCase()}
+                  <div key={p.id}>
+                    <div className="flex items-center gap-3 px-5 py-3.5 group hover:bg-stone-50 transition">
+                      <button
+                        onClick={() => setExpandedId(open ? null : p.id)}
+                        aria-expanded={open}
+                        className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                        <ChevronDown size={15}
+                          className={cn('text-stone-300 shrink-0 transition-transform', open ? 'rotate-0' : '-rotate-90')} />
+                        <div className="size-8 rounded-full bg-emerald-100 text-emerald-700 grid place-items-center text-sm font-bold shrink-0">
+                          {p.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-stone-900">{p.name}</p>
+                          <p className="text-xs text-stone-400 truncate">
+                            {p.email}
+                            {p.city_country && <span className="ml-2">· {p.city_country}</span>}
+                            {p.dietary_needs && <span className="ml-2 text-amber-600">· {p.dietary_needs}</span>}
+                          </p>
+                        </div>
+                      </button>
+                      {regPrice > 0 && (
+                        <span className="text-xs font-medium text-stone-400 shrink-0">
+                          {formatCurrency(p.payment_amount ?? 0)} / {formatCurrency(regPrice)}
+                        </span>
+                      )}
+                      <button onClick={() => cyclePayment(p)}
+                        className={cn('flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full transition hover:opacity-80 shrink-0', cls)}>
+                        <Icon size={11} /> {label}
+                      </button>
+                      <button onClick={() => handleDelete(p.id)} className="opacity-0 group-hover:opacity-100 text-stone-300 hover:text-rose-500 transition-all shrink-0">
+                        <Trash2 size={14} />
+                      </button>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-stone-900">{p.name}</p>
-                      <p className="text-xs text-stone-400 truncate">
-                        {p.email}
-                        {p.city_country && <span className="ml-2">· {p.city_country}</span>}
-                        {p.dietary_needs && <span className="ml-2 text-amber-600">· {p.dietary_needs}</span>}
-                      </p>
-                    </div>
-                    {regPrice > 0 && (
-                      <span className="text-xs font-medium text-stone-400 shrink-0">
-                        {formatCurrency(p.payment_amount ?? 0)} / {formatCurrency(regPrice)}
-                      </span>
-                    )}
-                    <button onClick={() => cyclePayment(p)}
-                      className={cn('flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full transition hover:opacity-80 shrink-0', cls)}>
-                      <Icon size={11} /> {label}
-                    </button>
-                    <button onClick={() => handleDelete(p.id)} className="opacity-0 group-hover:opacity-100 text-stone-300 hover:text-rose-500 transition-all shrink-0">
-                      <Trash2 size={14} />
-                    </button>
+                    {open && <ParticipantDetail participant={p} customQuestions={customQuestions} />}
                   </div>
                 )
               })}
@@ -172,6 +185,78 @@ function StatTile({ label, value, sub, tone = 'stone', subAction }: {
         <button onClick={subAction} className="text-xs text-emerald-600 font-semibold mt-0.5 hover:underline">{sub}</button>
       ) : (
         <p className="text-xs text-stone-400 mt-0.5">{sub}</p>
+      )}
+    </div>
+  )
+}
+
+function ParticipantDetail({ participant: p, customQuestions }: { participant: Participant; customQuestions: CustomQuestion[] }) {
+  const fmt = (v: unknown): string | null => {
+    if (v === null || v === undefined || v === '') return null
+    if (typeof v === 'boolean') return v ? 'Yes' : 'No'
+    return String(v)
+  }
+
+  const sections: { title: string; rows: [string, string | null][] }[] = [
+    { title: 'Basic Information', rows: [
+      ['Phone', fmt(p.phone)], ['Age', fmt(p.age)], ['Gender', fmt(p.gender)], ['City / Country', fmt(p.city_country)],
+    ] },
+    { title: 'About You', rows: [
+      ['Occupation', fmt(p.occupation)], ['Languages', fmt(p.languages)],
+      ['First retreat?', fmt(p.first_retreat)], ['How did you hear about us?', fmt(p.how_heard)],
+    ] },
+    { title: 'Community & Connection', rows: [
+      ['Motivation', fmt(p.motivation)], ['Hoping to gain', fmt(p.hoping_to_gain)],
+      ['Skills to share', fmt(p.skills_to_share)], ['Hobbies', fmt(p.hobbies)], ['Fun fact', fmt(p.fun_fact)],
+    ] },
+    { title: 'Retreat Preferences', rows: [
+      ['Dietary needs', fmt(p.dietary_needs)], ['Food preferences', fmt(p.food_preferences)],
+      ['T-shirt size', fmt(p.tshirt_size)], ['Activity level', fmt(p.activity_level)],
+      ['Wellness experience', fmt(p.wellness_experience)], ['Rooming preference', fmt(p.rooming_preference)],
+    ] },
+    { title: 'Emergency Contact', rows: [
+      ['Name', fmt(p.emergency_contact_name)], ['Relationship', fmt(p.emergency_contact_relationship)],
+      ['Phone', fmt(p.emergency_contact_phone)],
+    ] },
+    { title: 'Additional', rows: [
+      ['Anything else', fmt(p.additional_info)], ['Photo consent', fmt(p.photo_consent)],
+      ['Stay connected', fmt(p.stay_connected)],
+    ] },
+  ]
+
+  // Custom answers — map known question ids to their labels, then surface any orphans
+  const answered = p.custom_answers ?? {}
+  const customRows: [string, string | null][] = customQuestions.map(q => [q.label, fmt(answered[q.id])])
+  const knownIds = new Set(customQuestions.map(q => q.id))
+  for (const [key, val] of Object.entries(answered)) {
+    if (!knownIds.has(key)) customRows.push([key, fmt(val)])
+  }
+  if (customRows.some(([, v]) => v !== null)) {
+    sections.push({ title: 'Custom questions', rows: customRows })
+  }
+
+  const visible = sections.filter(s => s.rows.some(([, v]) => v !== null))
+
+  return (
+    <div className="px-5 pb-5 pt-1 bg-stone-50/60 border-t border-stone-100">
+      {visible.length === 0 ? (
+        <p className="text-sm text-stone-400 py-3">No additional answers provided.</p>
+      ) : (
+        <div className="grid sm:grid-cols-2 gap-x-8 gap-y-4 pt-3">
+          {visible.map(section => (
+            <div key={section.title}>
+              <p className="text-[11px] font-bold text-stone-400 uppercase tracking-wide mb-1.5">{section.title}</p>
+              <dl className="space-y-1.5">
+                {section.rows.filter(([, v]) => v !== null).map(([k, v]) => (
+                  <div key={k} className="text-sm">
+                    <dt className="text-xs text-stone-400">{k}</dt>
+                    <dd className="text-stone-800 whitespace-pre-wrap break-words">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )

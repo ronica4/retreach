@@ -10,12 +10,19 @@ export default async function ParticipantsPage({ params }: Props) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: retreat }, { data: participants }] = await Promise.all([
+  const [{ data: retreat }, { data: participants }, { data: questionnaire }] = await Promise.all([
     supabase.from('retreats').select('*').eq('id', id).eq('manager_id', user.id).single(),
     supabase.from('participants').select('*').eq('retreat_id', id).order('created_at'),
+    supabase.from('questionnaires').select('custom_questions').eq('retreat_id', id).maybeSingle(),
   ])
 
   if (!retreat) notFound()
 
-  return <ParticipantsStage retreat={retreat} participants={participants ?? []} />
+  return (
+    <ParticipantsStage
+      retreat={retreat}
+      participants={participants ?? []}
+      customQuestions={questionnaire?.custom_questions ?? []}
+    />
+  )
 }
