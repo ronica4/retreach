@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation'
 import { type Retreat, type Vendor, type ScheduleItem } from '@/types'
 import { formatDate } from '@/lib/utils'
 import {
-  Plus, Trash2, Clock, Sparkles, Pencil, Check, X,
-  CalendarDays, RefreshCw, LayoutGrid, List, ChevronDown, CalendarPlus, AlertTriangle,
+  Plus, Trash2, Clock, Pencil, Check, X,
+  CalendarDays, RefreshCw, LayoutGrid, List, ChevronDown, CalendarPlus, AlertTriangle, Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -85,26 +85,6 @@ function resolvedTrack(item: ScheduleItem): Track {
   return TYPE_TO_TRACK[item.item_type] ?? 'Main'
 }
 
-function detectConcept(retreat: Retreat) {
-  const t = ((retreat.concept ?? '') + ' ' + (retreat.name ?? '')).toLowerCase()
-  if (/yoga|wellness|mindful|spa|breath|heal/.test(t)) return 'Wellness'
-  if (/team|corporate|strategy|leadership|offsite/.test(t)) return 'Corporate'
-  if (/celebrat|birthday|party|gala/.test(t)) return 'Celebration'
-  if (/adventure|hike|camp|outdoor|trek/.test(t)) return 'Adventure'
-  return 'General retreat'
-}
-
-const TEMPLATE: { t: string; label: string; kind: ItemType }[] = [
-  { t: '07:00', label: 'Morning yoga',           kind: 'activity' },
-  { t: '08:30', label: 'Breakfast',              kind: 'meal'     },
-  { t: '10:00', label: 'Workshop',               kind: 'session'  },
-  { t: '12:30', label: 'Lunch',                  kind: 'meal'     },
-  { t: '14:00', label: 'Team building activity', kind: 'activity' },
-  { t: '17:00', label: 'Free time',              kind: 'other'    },
-  { t: '19:00', label: 'Group dinner',           kind: 'meal'     },
-]
-
-const DEFAULT_DAY_TITLES = ['Arrival & Opening', 'Core Day', 'Deep Work', 'Closing & Debrief']
 
 const inputCls = 'w-full px-2.5 py-2 text-sm bg-white rounded-lg ring-1 ring-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none transition'
 const labelCls = 'text-xs font-semibold text-stone-400 mb-0.5 block'
@@ -113,16 +93,30 @@ const labelCls = 'text-xs font-semibold text-stone-400 mb-0.5 block'
 
 export default function AgendaStage({ retreat, schedule, vendors }: Props) {
   const router = useRouter()
-  const [view, setView]             = useState<'list' | 'timeline'>('list')
-  const [showAdd, setShowAdd]       = useState(false)
-  const [suggesting, setSuggesting] = useState(false)
-  const [confirmReset, setConfirmReset] = useState(false)
-  const [dayTitles, setDayTitles]   = useState<Record<number, string>>({})
+  const [view, setView]       = useState<'list' | 'timeline'>('list')
+  const [showAdd, setShowAdd] = useState(false)
+  const [dayTitles, setDayTitles] = useState<Record<number, string>>({})
+  const [autoGenerating, setAutoGenerating] = useState(false)
+  const [autoGenError, setAutoGenError]     = useState<string | null>(null)
 
-  // Auto-open the AI agent drawer when the schedule is empty
+  // On mount: if schedule is empty, auto-generate via AI and open the agent drawer
   useEffect(() => {
-    if (schedule.length === 0) {
-      window.dispatchEvent(new CustomEvent('retreach:open-agent'))
+    window.dispatchEvent(new CustomEvent('retreach:open-agent'))
+
+    if (schedule.length === 0 && retreat.start_date && retreat.end_date) {
+      setAutoGenerating(true)
+      fetch('/api/agenda/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ retreatId: retreat.id }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.error) setAutoGenError(data.error)
+          else router.refresh()
+        })
+        .catch(err => setAutoGenError(String(err)))
+        .finally(() => setAutoGenerating(false))
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -209,35 +203,6 @@ export default function AgendaStage({ retreat, schedule, vendors }: Props) {
     router.refresh()
   }
 
-  async function suggestOrReset() {
-    if (schedule.length > 0 && !confirmReset) { setConfirmReset(true); return }
-    setConfirmReset(false)
-    if (!retreat.start_date || !retreat.end_date) return
-    setSuggesting(true)
-    const supabase = createClient()
-    if (schedule.length > 0) {
-      await supabase.from('schedule_items').delete().eq('retreat_id', retreat.id)
-    }
-    // Upsert day titles
-    const titleRows = dayNumbers.map((dn, i) => ({
-      retreat_id: retreat.id, day_number: dn, title: DEFAULT_DAY_TITLES[i] ?? `Day ${dn}`,
-    }))
-    await supabase.from('schedule_day_titles').upsert(titleRows, { onConflict: 'retreat_id,day_number' })
-    const newTitles: Record<number, string> = {}
-    titleRows.forEach(r => { newTitles[r.day_number] = r.title })
-    setDayTitles(newTitles)
-    // Insert schedule items
-    const rows = dayNumbers.flatMap(dn =>
-      TEMPLATE.map(b => ({
-        retreat_id: retreat.id, title: b.label,
-        day_number: dn, date: addDays(retreat.start_date, dn - 1),
-        start_time: b.t, end_time: null, item_type: b.kind,
-      }))
-    )
-    await supabase.from('schedule_items').insert(rows)
-    setSuggesting(false); router.refresh()
-  }
-
   // Group by day_number (falling back to computing from date for legacy items)
   const grouped: Record<number, ScheduleItem[]> = {}
   for (const item of schedule) {
@@ -245,9 +210,6 @@ export default function AgendaStage({ retreat, schedule, vendors }: Props) {
     if (!grouped[dn]) grouped[dn] = []
     grouped[dn].push(item)
   }
-
-  const concept        = detectConcept(retreat)
-  const closedVendors  = vendors.filter(v => v.status === 'completed').length
 
   return (
     <div>
@@ -269,44 +231,29 @@ export default function AgendaStage({ retreat, schedule, vendors }: Props) {
         </div>
       </div>
 
-      {/* Draft schedule banner */}
-      <div className="bg-white ring-1 ring-stone-200 card rounded-2xl px-5 py-4 flex items-center gap-4 mb-5 fade-up">
-        <div className="size-9 rounded-xl bg-emerald-700 grid place-items-center text-white shrink-0">
-          <Sparkles size={15} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-stone-800 mb-1.5">Draft my schedule</p>
-          <div className="flex flex-wrap gap-1.5">
-            <Chip label={concept} />
-            <Chip label={hasDate
-              ? `${formatDate(retreat.start_date)} – ${formatDate(retreat.end_date)}`
-              : 'Set dates'} faded={!hasDate} />
-            <Chip label={hasDate ? `${totalDays} day${totalDays !== 1 ? 's' : ''}` : '0 days'} faded={!hasDate} />
-            <Chip label={`${closedVendors} vendor${closedVendors !== 1 ? 's' : ''} closed`} />
+      {autoGenerating && (
+        <div className="bg-emerald-50 ring-1 ring-emerald-200 rounded-2xl px-5 py-4 flex items-center gap-3 mb-5 fade-up">
+          <RefreshCw size={16} className="text-emerald-600 animate-spin shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-emerald-800">Generating your agenda…</p>
+            <p className="text-xs text-emerald-600 mt-0.5">The AI is building a schedule based on your retreat details, vendors, and past feedback.</p>
           </div>
         </div>
-        <div className="shrink-0 flex items-center gap-2">
-          {confirmReset && (
-            <span className="text-xs text-rose-600 font-medium">This will replace all items.</span>
-          )}
-          <button onClick={suggestOrReset} disabled={suggesting || !hasDate}
-            className={cn('flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl transition',
-              confirmReset
-                ? 'bg-rose-600 text-white hover:bg-rose-700'
-                : 'bg-emerald-700 text-white hover:bg-emerald-800 disabled:opacity-50'
-            )}>
-            <RefreshCw size={13} className={suggesting ? 'animate-spin' : ''} />
-            {suggesting ? 'Building…' : confirmReset ? 'Confirm reset' : schedule.length ? 'Re-suggest' : 'Draft schedule'}
-          </button>
-          {confirmReset && (
-            <button onClick={() => setConfirmReset(false)} className="text-xs text-stone-400 hover:text-stone-700 px-2 py-1">Cancel</button>
-          )}
-        </div>
-      </div>
+      )}
 
-      {!hasDate && (
+      {autoGenError && (
+        <div className="bg-rose-50 ring-1 ring-rose-200 rounded-2xl px-5 py-4 flex items-center gap-3 mb-5 fade-up">
+          <Sparkles size={16} className="text-rose-500 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-rose-800">Couldn&apos;t auto-generate: {autoGenError}</p>
+            <p className="text-xs text-rose-600 mt-0.5">Use the AI agent (bottom-right) to ask it to build your schedule.</p>
+          </div>
+        </div>
+      )}
+
+      {!hasDate && !autoGenerating && (
         <div className="bg-amber-50 ring-1 ring-amber-200 rounded-2xl p-4 mb-4 text-sm text-amber-700">
-          Set retreat dates in Planning to enable schedule drafting and the timeline view.
+          Set retreat dates in Planning — the AI needs them to generate a schedule.
         </div>
       )}
 
@@ -383,9 +330,11 @@ export default function AgendaStage({ retreat, schedule, vendors }: Props) {
       {schedule.length === 0 ? (
         <div className="text-center py-16 text-stone-400 bg-white ring-1 ring-stone-200 card rounded-2xl">
           <Sparkles size={24} className="mx-auto mb-2 opacity-40" />
-          <p className="text-sm font-medium text-stone-600">No schedule yet</p>
+          <p className="text-sm font-medium text-stone-600">
+            {autoGenerating ? 'Building your agenda…' : 'No schedule yet'}
+          </p>
           <p className="text-sm mt-0.5">
-            {hasDate ? 'Click "Draft schedule" to generate a concept-aware plan.' : 'Set retreat dates first.'}
+            {autoGenerating ? 'The AI is generating your retreat schedule.' : hasDate ? 'Ask the AI agent to create your schedule.' : 'Set retreat dates first.'}
           </p>
         </div>
       ) : view === 'list' ? (
@@ -887,12 +836,3 @@ function TabPill({ active, onClick, icon, label }: {
   )
 }
 
-function Chip({ label, faded }: { label: string; faded?: boolean }) {
-  return (
-    <span className={cn('inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full ring-1',
-      faded ? 'bg-stone-100 text-stone-400 ring-stone-200' : 'bg-stone-100 text-stone-600 ring-stone-200'
-    )}>
-      {label}
-    </span>
-  )
-}
