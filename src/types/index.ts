@@ -162,6 +162,35 @@ export interface FeedbackQuestionnaire {
   updated_at: string
 }
 
+export interface RetreatSummary {
+  id: string
+  retreat_id: string
+  manager_id: string
+  retreat_name: string
+  destination: string | null
+  start_date: string | null
+  end_date: string | null
+  total_days: number | null
+  participant_count: number
+  schedule_snapshot: Array<{
+    day: number; start: string; end?: string; title: string; type: string; location?: string
+  }>
+  overall_rating: number | null
+  what_went_well: string | null
+  what_to_improve: string | null
+  lessons_learned: string | null
+  would_run_again: boolean | null
+  participant_response_count: number
+  avg_nps: number | null
+  nps_promoters: number
+  nps_passives: number
+  nps_detractors: number
+  top_loved_themes: string | null
+  top_improve_themes: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface AiInteraction {
   id: string
   retreat_id: string
