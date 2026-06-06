@@ -7,7 +7,7 @@ import { type Retreat, type Vendor, type ScheduleItem } from '@/types'
 import { formatDate } from '@/lib/utils'
 import {
   Plus, Trash2, Clock, Sparkles, Pencil, Check, X,
-  CalendarDays, RefreshCw, LayoutGrid, List, ChevronDown,
+  CalendarDays, RefreshCw, LayoutGrid, List, ChevronDown, CalendarPlus,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -452,7 +452,7 @@ function DayGroup({ dayNumber, items, retreat, vendors, title, onSaveTitle, onDe
 
       <div className="divide-y divide-stone-100">
         {sorted.map(item => (
-          <ListItem key={item.id} item={item} vendors={vendors} onDelete={onDelete} onRefresh={onRefresh} />
+          <ListItem key={item.id} item={item} vendors={vendors} realDate={realDate ?? undefined} onDelete={onDelete} onRefresh={onRefresh} />
         ))}
         {sorted.length === 0 && (
           <p className="px-5 py-3 text-xs text-stone-400 italic">No items yet</p>
@@ -469,8 +469,49 @@ function DayGroup({ dayNumber, items, retreat, vendors, title, onSaveTitle, onDe
   )
 }
 
-function ListItem({ item, vendors, onDelete, onRefresh }: {
+// ── Per-item calendar helpers ──────────────────────────────────────────────
+
+function toGCalDateTime(date: string, time: string) {
+  return `${date.replace(/-/g, '')}T${time.replace(':', '')}00`
+}
+
+function buildGoogleCalUrl(item: ScheduleItem, realDate: string) {
+  const start = toGCalDateTime(realDate, item.start_time)
+  const end   = item.end_time
+    ? toGCalDateTime(realDate, item.end_time)
+    : toGCalDateTime(realDate, `${String(parseInt(item.start_time.split(':')[0]) + 1).padStart(2, '0')}:${item.start_time.split(':')[1]}`)
+  const text     = encodeURIComponent(item.title)
+  const location = encodeURIComponent(item.location ?? '')
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${start}/${end}&location=${location}`
+}
+
+function downloadItemIcs(item: ScheduleItem, realDate: string) {
+  const start = toGCalDateTime(realDate, item.start_time)
+  const end   = item.end_time
+    ? toGCalDateTime(realDate, item.end_time)
+    : toGCalDateTime(realDate, `${String(parseInt(item.start_time.split(':')[0]) + 1).padStart(2, '0')}:${item.start_time.split(':')[1]}`)
+  const content = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//RetReach//EN',
+    'BEGIN:VEVENT',
+    `DTSTART:${start}`,
+    `DTEND:${end}`,
+    `SUMMARY:${item.title}`,
+    item.location ? `LOCATION:${item.location}` : '',
+    'END:VEVENT', 'END:VCALENDAR',
+  ].filter(Boolean).join('\r\n')
+
+  const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' })
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href     = url
+  a.download = `${item.title.replace(/\s+/g, '-')}.ics`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function ListItem({ item, vendors, realDate, onDelete, onRefresh }: {
   item: ScheduleItem; vendors: Vendor[]
+  realDate?: string
   onDelete: (id: string) => void; onRefresh: () => void
 }) {
   const [editField, setEditField]   = useState<'time' | 'title' | null>(null)
@@ -478,6 +519,7 @@ function ListItem({ item, vendors, onDelete, onRefresh }: {
   const [draftTitle, setDraftTitle] = useState(item.title)
   const [track, setTrackState]      = useState<Track>(resolvedTrack(item))
   const [saving, setSaving]         = useState(false)
+  const [calOpen, setCalOpen]       = useState(false)
   const timeRef  = useRef<HTMLInputElement>(null)
   const titleRef = useRef<HTMLInputElement>(null)
 
@@ -537,6 +579,41 @@ function ListItem({ item, vendors, onDelete, onRefresh }: {
         </select>
         <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
       </div>
+
+      {/* Per-item calendar button */}
+      {realDate && (
+        <div className="relative shrink-0">
+          <button
+            onClick={() => setCalOpen(o => !o)}
+            className="opacity-0 group-hover:opacity-100 text-stone-300 hover:text-emerald-600 transition-all"
+            title="Add to calendar"
+          >
+            <CalendarPlus size={13} />
+          </button>
+          {calOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setCalOpen(false)} />
+              <div className="absolute right-0 top-full mt-1 z-20 bg-white ring-1 ring-stone-200 rounded-xl shadow-lg py-1 w-44 fade-up">
+                <a
+                  href={buildGoogleCalUrl(item, realDate)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setCalOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 transition"
+                >
+                  <span className="text-base">📅</span> Google Calendar
+                </a>
+                <button
+                  onClick={() => { downloadItemIcs(item, realDate); setCalOpen(false) }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 transition"
+                >
+                  <span className="text-base">📥</span> Download .ics
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       <button onClick={() => onDelete(item.id)}
         className="opacity-0 group-hover:opacity-100 text-stone-300 hover:text-rose-500 transition-all shrink-0">
