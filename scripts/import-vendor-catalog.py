@@ -96,13 +96,21 @@ def upsert(env: dict, records: list[dict]):
     key = env.get("SUPABASE_SERVICE_ROLE_KEY", "")
     if not base or not key:
         sys.exit("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local")
-    url = f"{base}/rest/v1/vendor_catalog?on_conflict=source_id"
-    headers = {
-        "apikey": key,
-        "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json",
-        "Prefer": "return=minimal,resolution=merge-duplicates",
-    }
+    auth = {"apikey": key, "Authorization": f"Bearer {key}"}
+
+    # Re-run safe: clear previously seeded rows (source_id not null) but keep
+    # user-contributed entries (source_id is null), then re-insert the dataset.
+    del_req = urllib.request.Request(
+        f"{base}/rest/v1/vendor_catalog?source_id=not.is.null",
+        headers={**auth, "Prefer": "return=minimal"}, method="DELETE")
+    try:
+        with urllib.request.urlopen(del_req) as resp:
+            print(f"  cleared previous seed rows (HTTP {resp.status})")
+    except urllib.error.HTTPError as e:
+        sys.exit(f"HTTP {e.code} clearing seed: {e.read().decode('utf-8', 'replace')}")
+
+    url = f"{base}/rest/v1/vendor_catalog"
+    headers = {**auth, "Content-Type": "application/json", "Prefer": "return=minimal"}
     BATCH = 500
     for i in range(0, len(records), BATCH):
         chunk = records[i:i + BATCH]
@@ -110,7 +118,7 @@ def upsert(env: dict, records: list[dict]):
         req = urllib.request.Request(url, data=body, headers=headers, method="POST")
         try:
             with urllib.request.urlopen(req) as resp:
-                print(f"  upserted rows {i + 1}-{i + len(chunk)}  (HTTP {resp.status})")
+                print(f"  inserted rows {i + 1}-{i + len(chunk)}  (HTTP {resp.status})")
         except urllib.error.HTTPError as e:
             sys.exit(f"HTTP {e.code} on batch {i}: {e.read().decode('utf-8', 'replace')}")
 
