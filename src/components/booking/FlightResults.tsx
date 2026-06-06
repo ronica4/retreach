@@ -1,7 +1,7 @@
 'use client'
 
 import { FlightResult } from '@/types/booking'
-import { Loader, Clock, PlaneTakeoff } from 'lucide-react'
+import { Loader, Clock, PlaneTakeoff, SearchX } from 'lucide-react'
 
 interface FlightResultsProps {
   flights: FlightResult[]
@@ -25,7 +25,11 @@ export default function FlightResults({ flights, loading, budget, onSelect }: Fl
           <p className="text-xs text-stone-500">Searching flights...</p>
         </div>
       ) : flights.length === 0 ? (
-        <p className="text-sm text-stone-500 text-center py-6">No flights found</p>
+        <div className="flex flex-col items-center gap-2 py-10 text-center">
+          <SearchX size={28} className="text-stone-300" />
+          <p className="text-sm font-semibold text-stone-600">No flights found</p>
+          <p className="text-xs text-stone-400 max-w-[180px]">Try adjusting your travel dates or searching a nearby airport.</p>
+        </div>
       ) : (
         <div className="space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto">
           {flights.map((flight, i) => (

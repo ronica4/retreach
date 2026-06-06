@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
           content: `You are a professional retreat planner. Generate a realistic, detailed daily schedule for a ${totalDays}-day retreat.
 Rules:
 - Day 1 begins with arrival/check-in, last day ends with check-out/departure
-- Include: breakfast, lunch, dinner, morning activity, afternoon activity or session, evening program
+- Include: breakfast, lunch, dinner (at the retreat venue — do NOT add restaurants, external dining, or restaurant names), morning activity, afternoon activity or session, evening program
 - Each day: 6–9 items. Spread through 07:00–22:00.
 - Match activities to the retreat concept and destination
 - Incorporate booked vendors/services — name them in the title

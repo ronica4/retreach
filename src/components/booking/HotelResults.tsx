@@ -1,7 +1,7 @@
 'use client'
 
 import { HotelResult } from '@/types/booking'
-import { Loader, Star } from 'lucide-react'
+import { Loader, Star, SearchX } from 'lucide-react'
 
 interface HotelResultsProps {
   hotels: HotelResult[]
@@ -21,7 +21,11 @@ export default function HotelResults({ hotels, loading, budget, onSelect }: Hote
           <p className="text-xs text-stone-500">Searching hotels...</p>
         </div>
       ) : hotels.length === 0 ? (
-        <p className="text-sm text-stone-500 text-center py-6">No hotels found</p>
+        <div className="flex flex-col items-center gap-2 py-10 text-center">
+          <SearchX size={28} className="text-stone-300" />
+          <p className="text-sm font-semibold text-stone-600">No hotels found</p>
+          <p className="text-xs text-stone-400 max-w-[180px]">Try increasing the hotel budget or adjusting your dates.</p>
+        </div>
       ) : (
         <div className="space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto">
           {hotels.map((hotel, i) => {

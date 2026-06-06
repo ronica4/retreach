@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Retreat } from '@/types'
@@ -39,8 +39,9 @@ export default function BookingAssistantPage() {
 
   const [confirmingSelections, setConfirmingSelections] = useState(false)
 
-  const [searchStep, setSearchStep] = useState<'idle' | 'flights' | 'hotels' | 'both'>('idle')
+  const [searchStep, setSearchStep] = useState<'idle' | 'flights' | 'hotels'>('idle')
   const [budgetTouched, setBudgetTouched] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Load retreat data
   useEffect(() => {
@@ -180,13 +181,18 @@ export default function BookingAssistantPage() {
     setHotelBudgetPercent(hotelPct)
     setFlightBudgetPercent(100 - hotelPct)
     setBudgetTouched(true)
-    // Re-search with new allocation if already searched
-    if (retreat && (searchStep === 'hotels' || searchStep === 'both')) {
-      performHotelSearch(retreat, hotelPct, 100 - hotelPct)
-    }
-    if (retreat && (searchStep === 'flights' || searchStep === 'both')) {
-      performFlightSearch(retreat, hotelPct, 100 - hotelPct)
-    }
+
+    if (!retreat || searchStep === 'idle') return
+
+    // Debounce so slider drags don't flood the API
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      if (searchStep === 'hotels') {
+        performHotelSearch(retreat, hotelPct, 100 - hotelPct)
+      } else if (searchStep === 'flights') {
+        performFlightSearch(retreat, hotelPct, 100 - hotelPct)
+      }
+    }, 700)
   }
 
   function addProvisionalHotel(hotel: HotelResult) {
