@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { type Retreat, type Notification } from '@/types'
 import { formatDate } from '@/lib/utils'
-import { Bell, Send, RefreshCw, Clock, CheckCircle2, XCircle, ChevronDown, ChevronUp, Mail, MessageSquare, Smartphone, Zap } from 'lucide-react'
+import { Bell, Send, RefreshCw, Clock, CheckCircle2, XCircle, ChevronDown, ChevronUp, Mail, MessageSquare, Smartphone, Zap, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -30,6 +30,20 @@ const TYPE_BADGE: Record<string, string> = {
   manager:     'bg-blue-100 text-blue-700',
 }
 
+const QUICK_OPTIONS = [
+  { label: 'Tomorrow',  days: 1 },
+  { label: 'In 2 days', days: 2 },
+  { label: 'In 3 days', days: 3 },
+  { label: 'In 1 week', days: 7 },
+]
+
+function daysFromNow(days: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() + days)
+  d.setHours(8, 0, 0, 0)
+  return d.toISOString().slice(0, 16) // YYYY-MM-DDTHH:MM for datetime-local
+}
+
 export default function NotificationsStage({ retreat, notifications: initial }: Props) {
   const router = useRouter()
   const [notifications, setNotifications] = useState<Notification[]>(initial)
@@ -39,9 +53,51 @@ export default function NotificationsStage({ retreat, notifications: initial }: 
   const [sendingId, setSendingId]         = useState<string | null>(null)
   const [toast, setToast]                 = useState<string | null>(null)
 
+  const [showReminder, setShowReminder]   = useState(false)
+  const [reminderSubject, setReminderSubject] = useState('')
+  const [reminderMessage, setReminderMessage] = useState('')
+  const [reminderQuick, setReminderQuick] = useState<number | null>(null)
+  const [reminderCustom, setReminderCustom] = useState('')
+  const [savingReminder, setSavingReminder] = useState(false)
+
   function showToast(msg: string) {
     setToast(msg)
     setTimeout(() => setToast(null), 3500)
+  }
+
+  async function scheduleReminder(e: React.FormEvent) {
+    e.preventDefault()
+    const scheduledFor = reminderQuick !== null
+      ? new Date(daysFromNow(reminderQuick)).toISOString()
+      : reminderCustom ? new Date(reminderCustom).toISOString() : null
+    if (!scheduledFor) return
+    setSavingReminder(true)
+    try {
+      const res = await fetch('/api/notifications/reminder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          retreatId: retreat.id,
+          subject: reminderSubject,
+          message: reminderMessage,
+          scheduledFor,
+        }),
+      })
+      if (res.ok) {
+        showToast('Reminder scheduled — you\'ll get an email when it\'s due.')
+        setShowReminder(false)
+        setReminderSubject('')
+        setReminderMessage('')
+        setReminderQuick(null)
+        setReminderCustom('')
+        router.refresh()
+      } else {
+        const d = await res.json()
+        showToast(d.error ?? 'Failed to schedule reminder')
+      }
+    } finally {
+      setSavingReminder(false)
+    }
   }
 
   async function generateReminders() {
@@ -130,6 +186,107 @@ export default function NotificationsStage({ retreat, notifications: initial }: 
           Click <strong className="text-stone-300">"Simulate cron"</strong> to run it now and see it queue real notifications.
           In production, clicking <strong className="text-stone-300">"Send"</strong> calls Resend or Twilio instead of marking the record.
         </p>
+      </div>
+
+      {/* Self-reminder card */}
+      <div className="bg-white ring-1 ring-stone-200 card rounded-2xl mb-5 overflow-hidden fade-up">
+        <button
+          onClick={() => setShowReminder(v => !v)}
+          className="w-full flex items-center gap-3 px-5 py-4 hover:bg-stone-50 transition text-left"
+        >
+          <div className="size-8 rounded-xl bg-blue-100 text-blue-700 grid place-items-center shrink-0">
+            <Bell size={14} />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-stone-800">Schedule a reminder to yourself</p>
+            <p className="text-xs text-stone-400">Get an email in your inbox at the right time</p>
+          </div>
+          {showReminder
+            ? <X size={15} className="text-stone-400 shrink-0" />
+            : <Plus size={15} className="text-stone-400 shrink-0" />}
+        </button>
+
+        {showReminder && (
+          <form onSubmit={scheduleReminder} className="px-5 pb-5 space-y-4 border-t border-stone-100 pt-4">
+            {/* Subject */}
+            <div>
+              <label className="text-xs font-semibold text-stone-400 mb-1 block">Subject *</label>
+              <input
+                required
+                value={reminderSubject}
+                onChange={e => setReminderSubject(e.target.value)}
+                placeholder="e.g. Check hotel confirmations"
+                className="w-full px-3 py-2 text-sm bg-stone-50 rounded-xl ring-1 ring-stone-200 focus:ring-emerald-500 outline-none"
+              />
+            </div>
+
+            {/* Message */}
+            <div>
+              <label className="text-xs font-semibold text-stone-400 mb-1 block">Note (optional)</label>
+              <textarea
+                rows={2}
+                value={reminderMessage}
+                onChange={e => setReminderMessage(e.target.value)}
+                placeholder="What do you need to do?"
+                className="w-full px-3 py-2 text-sm bg-stone-50 rounded-xl ring-1 ring-stone-200 focus:ring-emerald-500 outline-none resize-none"
+              />
+            </div>
+
+            {/* When */}
+            <div>
+              <label className="text-xs font-semibold text-stone-400 mb-2 block">Send when *</label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {QUICK_OPTIONS.map(o => (
+                  <button
+                    key={o.days} type="button"
+                    onClick={() => { setReminderQuick(o.days); setReminderCustom('') }}
+                    className={cn(
+                      'text-xs font-semibold px-3 py-1.5 rounded-xl ring-1 transition',
+                      reminderQuick === o.days
+                        ? 'bg-emerald-700 text-white ring-emerald-700'
+                        : 'bg-stone-50 text-stone-600 ring-stone-200 hover:bg-stone-100'
+                    )}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setReminderQuick(null)}
+                  className={cn(
+                    'text-xs font-semibold px-3 py-1.5 rounded-xl ring-1 transition',
+                    reminderQuick === null && reminderCustom !== ''
+                      ? 'bg-emerald-700 text-white ring-emerald-700'
+                      : 'bg-stone-50 text-stone-600 ring-stone-200 hover:bg-stone-100'
+                  )}
+                >
+                  Custom
+                </button>
+              </div>
+              {reminderQuick === null && (
+                <input
+                  type="datetime-local"
+                  value={reminderCustom}
+                  onChange={e => setReminderCustom(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 text-sm bg-stone-50 rounded-xl ring-1 ring-stone-200 focus:ring-emerald-500 outline-none"
+                />
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-1">
+              <button type="button" onClick={() => setShowReminder(false)}
+                className="text-sm px-4 py-2 rounded-xl ring-1 ring-stone-200 text-stone-600 hover:bg-stone-50">
+                Cancel
+              </button>
+              <button type="submit" disabled={savingReminder || (!reminderQuick && !reminderCustom)}
+                className="text-sm font-semibold px-5 py-2 rounded-xl bg-emerald-700 text-white hover:bg-emerald-800 disabled:opacity-50 transition flex items-center gap-1.5">
+                <Clock size={13} />
+                {savingReminder ? 'Scheduling…' : 'Schedule reminder'}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
 
       {/* Stats + actions */}

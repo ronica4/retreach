@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { Resend } from 'resend'
 import { daysUntilDeadline, draftDeadlineNotification } from '@/lib/notification-helpers'
 
 // This endpoint is called by Vercel Cron every day at 8am UTC.
@@ -114,10 +115,43 @@ export async function GET(req: NextRequest) {
     // ────────────────────────────────────────────────────────────────────────
   }
 
-  console.log(`Cron: queued ${created} reminder notifications`)
+  // ── Phase 2: Send all pending notifications that are due ──────────────────
+  const { data: dueNotifications } = await supabase
+    .from('notifications')
+    .select('id, recipient_email, subject, body')
+    .eq('status', 'pending')
+    .eq('channel', 'email')
+    .not('recipient_email', 'is', null)
+    .lte('scheduled_for', now.toISOString())
+
+  let sent = 0
+  const resendKey = process.env.RESEND_API_KEY
+  if (resendKey && dueNotifications && dueNotifications.length > 0) {
+    const resend = new Resend(resendKey)
+    for (const n of dueNotifications) {
+      const { error: sendError } = await resend.emails.send({
+        from: 'RetReach <onboarding@resend.dev>',
+        to: n.recipient_email,
+        subject: n.subject ?? '(no subject)',
+        html: n.body ? n.body.replace(/\n/g, '<br>') : '',
+      })
+      if (!sendError) {
+        await supabase.from('notifications')
+          .update({ status: 'sent', sent_at: now.toISOString() }).eq('id', n.id)
+        sent++
+      } else {
+        await supabase.from('notifications')
+          .update({ status: 'failed' }).eq('id', n.id)
+        console.error(`Cron: failed to send notification ${n.id}:`, sendError.message)
+      }
+    }
+  }
+
+  console.log(`Cron: queued ${created} reminders, sent ${sent} emails`)
   return NextResponse.json({
-    message: `Queued ${created} reminder notification${created !== 1 ? 's' : ''}`,
+    message: `Queued ${created} reminder${created !== 1 ? 's' : ''}, sent ${sent} email${sent !== 1 ? 's' : ''}`,
     created,
+    sent,
     scanned: vendors.length,
   })
 }
