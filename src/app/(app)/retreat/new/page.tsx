@@ -236,10 +236,10 @@ export default function NewRetreatPage() {
               </div>
 
               <div>
-                <label className={labelCls}>Total budget for the whole retreat (USD)</label>
+                <label className={labelCls}>Total budget for the whole retreat (USD) *</label>
                 <input type="number" value={form.budget} onChange={e => update('budget', e.target.value)}
-                  min="0" step="100" placeholder="50000"
-                  className={inputCls} />
+                  min="1" step="100" placeholder="50000"
+                  required className={inputCls} />
               </div>
             </div>
 

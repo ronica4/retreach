@@ -39,7 +39,8 @@ export default function BookingAssistantPage() {
 
   const [confirmingSelections, setConfirmingSelections] = useState(false)
 
-  const [searchStep, setSearchStep] = useState<'flights' | 'hotels' | 'both'>('flights')
+  const [searchStep, setSearchStep] = useState<'idle' | 'flights' | 'hotels' | 'both'>('idle')
+  const [budgetTouched, setBudgetTouched] = useState(false)
 
   // Load retreat data
   useEffect(() => {
@@ -67,11 +68,6 @@ export default function BookingAssistantPage() {
 
       setRetreat(data)
       setLoading(false)
-
-      // Auto-search flights only on initial load
-      if (data.start_date && data.end_date && data.destination) {
-        await performFlightSearch(data, 60, 40)
-      }
     }
 
     loadRetreat()
@@ -168,18 +164,28 @@ export default function BookingAssistantPage() {
     }
   }
 
+  async function handleSearchFlights() {
+    if (!retreat) return
+    setSearchStep('flights')
+    await performFlightSearch(retreat, hotelBudgetPercent, flightBudgetPercent)
+  }
+
   async function handleSearchHotels() {
     if (!retreat) return
-    setSearchStep('both')
+    setSearchStep('hotels')
     await performHotelSearch(retreat, hotelBudgetPercent, flightBudgetPercent)
   }
 
   function handleBudgetChange(hotelPct: number) {
     setHotelBudgetPercent(hotelPct)
     setFlightBudgetPercent(100 - hotelPct)
-    // Only re-search hotels if they're already being shown
-    if (retreat && searchStep === 'both') {
+    setBudgetTouched(true)
+    // Re-search with new allocation if already searched
+    if (retreat && (searchStep === 'hotels' || searchStep === 'both')) {
       performHotelSearch(retreat, hotelPct, 100 - hotelPct)
+    }
+    if (retreat && (searchStep === 'flights' || searchStep === 'both')) {
+      performFlightSearch(retreat, hotelPct, 100 - hotelPct)
     }
   }
 
@@ -342,28 +348,36 @@ export default function BookingAssistantPage() {
           flightBudget={flightBudget}
         />
 
-        {/* Tab buttons */}
-        <div className="flex gap-2 mt-8 mb-6">
+        {/* Budget prompt */}
+        {!budgetTouched && searchStep === 'idle' && (
+          <div className="mt-6 bg-amber-50 ring-1 ring-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
+            Set your hotel and flight budget split above, then search.
+          </div>
+        )}
+
+        {/* Search buttons */}
+        <div className="flex gap-2 mt-6 mb-6">
           <button
-            onClick={() => setSearchStep('flights')}
-            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
+            onClick={handleSearchFlights}
+            disabled={searchingFlights}
+            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 ${
               searchStep === 'flights'
                 ? 'bg-emerald-600 text-white'
                 : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
             }`}
           >
-            Flights
+            {searchingFlights ? 'Searching flights…' : 'Search Flights'}
           </button>
           <button
             onClick={handleSearchHotels}
             disabled={searchingHotels}
-            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
-              searchStep === 'both'
+            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 ${
+              searchStep === 'hotels'
                 ? 'bg-emerald-600 text-white'
-                : 'bg-stone-200 text-stone-700 hover:bg-stone-300 disabled:opacity-50'
+                : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
             }`}
           >
-            {searchingHotels ? 'Loading hotels...' : 'Hotels'}
+            {searchingHotels ? 'Searching hotels…' : 'Search Hotels'}
           </button>
         </div>
 
@@ -371,7 +385,14 @@ export default function BookingAssistantPage() {
         <div className="grid grid-cols-3 gap-6">
           {/* Left: Results panel (flights or hotels depending on tab) */}
           <div className="col-span-1">
-            {searchStep === 'flights' ? (
+            {searchStep === 'hotels' ? (
+              <HotelResults
+                hotels={hotelResults}
+                loading={searchingHotels}
+                budget={hotelBudget}
+                onSelect={addProvisionalHotel}
+              />
+            ) : searchStep === 'flights' ? (
               <FlightResults
                 flights={flightResults}
                 loading={searchingFlights}
@@ -379,12 +400,9 @@ export default function BookingAssistantPage() {
                 onSelect={addProvisionalFlight}
               />
             ) : (
-              <HotelResults
-                hotels={hotelResults}
-                loading={searchingHotels}
-                budget={hotelBudget}
-                onSelect={addProvisionalHotel}
-              />
+              <div className="bg-white rounded-xl ring-1 ring-stone-200 p-6 text-center text-sm text-stone-400">
+                Set your budget split and click Search Flights or Search Hotels.
+              </div>
             )}
           </div>
 
