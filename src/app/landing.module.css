@@ -1,0 +1,143 @@
+/* RetReach landing page — scoped via CSS Module, all rules nested under .page */
+.page {
+  /* Palette */
+  --sand: #FAF7F1; --sand-100: #F2ECE0; --sand-200: #E8DFD3;
+  --ink: #41382B; --muted: #8F8167; --faint: #B7A98F;
+  --sage-50: #F3F6F1; --sage-100: #E7EDE3; --sage-200: #D2DDCC;
+  --sage-400: #A8BBA2; --sage-700: #5C6F57; --sage-800: #45533F;
+  --sage-900: #333F2F; --sage-950: #212A1E;
+  --clay-600: #966743;
+  --stone-200: #E8DFD3; --stone-300: #D8CBB8; --stone-400: #B7A98F;
+  --stone-500: #8F8167; --stone-600: #6E614C; --stone-700: #564B3A;
+  --stone-900: #302921;
+  --shadow-card: 0 1px 2px rgba(41,37,36,.04), 0 8px 24px -12px rgba(41,37,36,.10);
+
+  letter-spacing: -0.011em;
+  background: var(--sand);
+  color: var(--ink);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Reset — scoped to the landing only */
+.page *, .page *::before, .page *::after { box-sizing: border-box; margin: 0; padding: 0; }
+.page img { display: block; max-width: 100%; }
+.page button { cursor: pointer; border: none; background: none; font: inherit; color: inherit; }
+.page a { text-decoration: none; color: inherit; }
+
+/* Utility */
+.container { max-width: 80rem; margin: 0 auto; padding-left: 1.5rem; padding-right: 1.5rem; }
+@media (min-width: 640px) { .container { padding-left: 2.5rem; padding-right: 2.5rem; } }
+.card { box-shadow: var(--shadow-card); }
+
+@keyframes fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.fadeUp { animation: fade-up .4s cubic-bezier(.22,1,.36,1) both; }
+
+/* SVG icons */
+.icon { display: inline-block; vertical-align: middle; flex-shrink: 0; }
+.icon svg { display: block; }
+
+/* NAV */
+.nav { position: sticky; top: 0; z-index: 50; background: rgba(250,247,241,.8); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid rgba(232,223,211,.6); }
+.navInner { display: flex; align-items: center; justify-content: space-between; padding: .9rem 0; }
+.navLogo { display: flex; align-items: center; gap: .625rem; }
+.navLogoIcon { width: 2.25rem; height: 2.25rem; border-radius: .75rem; background: var(--sage-700); display: grid; place-items: center; color: #fff; }
+.navLogoText { font-size: 1.125rem; font-weight: 700; color: var(--ink); letter-spacing: -.02em; }
+.navActions { display: flex; align-items: center; gap: .75rem; }
+.btnGhost { font-size: .875rem; font-weight: 600; color: var(--stone-600); padding: .5rem .75rem; transition: color .15s; }
+.btnGhost:hover { color: var(--ink); }
+.btnPrimary { font-size: .875rem; font-weight: 600; color: #fff; background: var(--sage-700); border-radius: 9999px; padding: .625rem 1.25rem; transition: background .15s; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.btnPrimary:hover { background: var(--sage-800); }
+
+/* HERO */
+.hero { position: relative; overflow: hidden; }
+.heroSlide { position: absolute; inset: 0; transition: opacity 1.5s ease-in-out; }
+.heroSlide img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.heroOverlay { position: absolute; inset: 0; background: rgba(33,42,30,.6); }
+.heroFade { position: absolute; bottom: 0; left: 0; right: 0; height: 6rem; background: linear-gradient(to top, var(--sand), transparent); }
+.heroContent { position: relative; padding: 6rem 0; }
+@media (min-width: 640px) { .heroContent { padding: 9rem 0; } }
+@media (min-width: 1024px) { .heroContent { padding: 11rem 0; } }
+.heroInner { max-width: 48rem; }
+.heroBadge { display: inline-flex; align-items: center; gap: .5rem; font-size: .75rem; font-weight: 600; color: var(--sage-400); background: rgba(69,83,63,.4); border: 1px solid rgba(92,111,87,.3); border-radius: 9999px; padding: .5rem 1rem; margin-bottom: 2rem; text-transform: uppercase; letter-spacing: .05em; }
+.hero h1 { font-size: clamp(2.8rem, 8vw, 6rem); font-weight: 900; color: #fff; letter-spacing: -.03em; line-height: .95; }
+.hero h1 .accent { color: var(--sage-400); }
+.heroSub { font-size: 1.125rem; color: var(--stone-300); margin-top: 2rem; max-width: 32rem; line-height: 1.7; }
+@media (min-width: 640px) { .heroSub { font-size: 1.25rem; } }
+.heroActions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin-top: 2.5rem; }
+.btnCta { display: inline-flex; align-items: center; gap: .5rem; font-size: 1rem; font-weight: 700; color: var(--sage-950); background: var(--sage-400); border-radius: 9999px; padding: 1rem 2rem; box-shadow: 0 10px 25px -5px rgba(33,42,30,.3); transition: background .15s; }
+.btnCta:hover { background: var(--sage-200); }
+.btnCta svg { transition: transform .15s; }
+.btnCta:hover svg { transform: translateX(2px); }
+.heroNote { font-size: .875rem; color: var(--stone-400); }
+
+/* PAIN */
+.pain { padding: 6rem 0; }
+@media (min-width: 640px) { .pain { padding: 8rem 0; } }
+.painGrid { display: grid; gap: 4rem; align-items: center; }
+@media (min-width: 1024px) { .painGrid { grid-template-columns: 1fr 1fr; gap: 6rem; } }
+.painLabel { font-size: .75rem; font-weight: 700; color: var(--clay-600); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 1rem; }
+.pain h2 { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 900; color: var(--ink); letter-spacing: -.02em; line-height: 1.05; }
+.pain h2 .dim { display: block; color: var(--stone-400); margin-top: .25rem; }
+.painBody p { font-size: 1.125rem; color: var(--stone-600); line-height: 1.7; }
+.painBody p + p { margin-top: 1.5rem; }
+
+/* SOLUTION */
+.solution { background: var(--sage-700); padding: 5rem 0; text-align: center; }
+@media (min-width: 640px) { .solution { padding: 6rem 0; } }
+.solution h2 { font-size: clamp(1.75rem, 5vw, 3rem); font-weight: 900; color: #fff; letter-spacing: -.02em; line-height: 1.15; }
+.solution p { font-size: 1.125rem; color: var(--sage-200); margin-top: 1.5rem; max-width: 40rem; margin-left: auto; margin-right: auto; line-height: 1.7; }
+
+/* PHASES */
+.phases { padding: 6rem 0; }
+@media (min-width: 640px) { .phases { padding: 8rem 0; } }
+.phasesHeader { text-align: center; margin-bottom: 5rem; }
+.phasesLabel { font-size: .75rem; font-weight: 700; color: var(--sage-700); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 1rem; }
+.phasesHeader h2 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 900; color: var(--ink); letter-spacing: -.02em; }
+.phase { display: grid; gap: 3rem; align-items: start; }
+@media (min-width: 1024px) { .phase { grid-template-columns: 1fr 1fr; gap: 5rem; } }
+.phase + .phase { margin-top: 4rem; }
+@media (min-width: 640px) { .phase + .phase { margin-top: 6rem; } }
+.phaseNumber { display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem; }
+.phaseNumber span:first-child { font-size: 3rem; font-weight: 900; color: var(--sage-200); line-height: 1; }
+.phaseNumber span:last-child { font-size: .75rem; font-weight: 700; color: var(--sage-700); letter-spacing: .1em; text-transform: uppercase; }
+.phase h3 { font-size: clamp(1.75rem, 4vw, 2.25rem); font-weight: 900; color: var(--ink); letter-spacing: -.02em; margin-bottom: 1rem; }
+.phaseDesc { font-size: 1.125rem; color: var(--muted); line-height: 1.7; }
+.phaseCards { display: flex; flex-direction: column; gap: 1rem; }
+.bulletCard { display: flex; gap: 1rem; background: #fff; border-radius: 1rem; border: 1px solid var(--stone-200); padding: 1.25rem; box-shadow: var(--shadow-card); }
+.bulletIcon { width: 2.5rem; height: 2.5rem; flex-shrink: 0; border-radius: .75rem; background: var(--sage-50); border: 1px solid var(--sage-100); display: grid; place-items: center; color: var(--sage-700); }
+.bulletCard p { font-size: .875rem; color: var(--stone-700); line-height: 1.6; padding-top: .375rem; }
+@media (min-width: 1024px) {
+  .phase.reverse .phaseText { order: 2; }
+  .phase.reverse .phaseCards { order: 1; }
+}
+
+/* DASHBOARD */
+.dashboard { background: var(--sand-100); border-top: 1px solid var(--stone-200); border-bottom: 1px solid var(--stone-200); padding: 4rem 0; }
+.dashboardHeader { text-align: center; margin-bottom: 2.5rem; }
+.dashboardLabel { font-size: .75rem; font-weight: 700; color: var(--sage-700); letter-spacing: .1em; text-transform: uppercase; margin-bottom: .75rem; }
+.dashboardHeader h3 { font-size: clamp(1.5rem, 3vw, 1.875rem); font-weight: 700; color: var(--ink); letter-spacing: -.02em; }
+.dashboardGrid { display: grid; gap: 1rem; }
+@media (min-width: 640px) { .dashboardGrid { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 1024px) { .dashboardGrid { grid-template-columns: repeat(4, 1fr); } }
+.dashCard { display: flex; align-items: center; gap: .75rem; background: #fff; border-radius: .75rem; border: 1px solid var(--stone-200); padding: 1rem; box-shadow: var(--shadow-card); }
+.dashIcon { width: 2.25rem; height: 2.25rem; flex-shrink: 0; border-radius: .5rem; background: var(--sage-50); border: 1px solid var(--sage-100); display: grid; place-items: center; color: var(--sage-700); }
+.dashCard span { font-size: .875rem; font-weight: 600; color: var(--stone-700); }
+
+/* FINAL CTA */
+.finalCta { position: relative; overflow: hidden; }
+.finalCtaBg { position: absolute; inset: 0; background: linear-gradient(135deg, var(--sage-950), var(--sage-900), var(--stone-900)); }
+.finalCtaContent { position: relative; max-width: 48rem; margin: 0 auto; padding: 6rem 0; text-align: center; }
+@media (min-width: 640px) { .finalCtaContent { padding: 8rem 0; } }
+.finalCta h2 { font-size: clamp(2rem, 6vw, 3.5rem); font-weight: 900; color: #fff; letter-spacing: -.02em; line-height: 1.1; }
+.finalCta p { font-size: 1.125rem; color: var(--stone-300); margin-top: 1.5rem; max-width: 32rem; margin-left: auto; margin-right: auto; line-height: 1.7; }
+.finalCta .btnCta { margin-top: 2.5rem; }
+
+/* FOOTER */
+.footer { background: var(--stone-900); color: var(--stone-400); padding: 2.5rem 0; }
+.footerInner { display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 1rem; }
+@media (min-width: 640px) { .footerInner { flex-direction: row; } }
+.footerLogo { display: flex; align-items: center; gap: .625rem; }
+.footerLogoIcon { width: 1.75rem; height: 1.75rem; border-radius: .5rem; background: var(--sage-700); display: grid; place-items: center; color: #fff; }
+.footerLogo span { font-size: .875rem; font-weight: 600; color: var(--stone-300); }
+.footerTagline { font-size: .75rem; color: var(--stone-500); }
